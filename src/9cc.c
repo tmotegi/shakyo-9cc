@@ -163,6 +163,7 @@ Node *new_node_num(int val) {
 
 Node *expr(void);
 Node *mul(void);
+Node *unary(void);
 Node *primary(void);
 
 // expr    = mul ("+" mul | "-" mul)*
@@ -180,18 +181,32 @@ Node *expr(void) {
   }
 }
 
-// mul     = primary ("*" primary | "/" primary)*
+// mul     = unary ("*" unary | "/" unary)*
 Node *mul(void) {
-  Node *node = primary();
+  Node *node = unary();
 
   for (;;) {
     if (consume('*')) {
-      node = new_node(ND_MUL, node, primary());
+      node = new_node(ND_MUL, node, unary());
     } else if (consume('/')) {
-      node = new_node(ND_DIV, node, primary());
+      node = new_node(ND_DIV, node, unary());
     } else {
       return node;
     }
+  }
+}
+
+// - -10 をパースするケースを考えると expr -> mul -> unary -> (- | unary) -> (-
+// | - | primary) = - - 10
+
+// unary   = ("+" | "-")? unary | primary
+Node *unary(void) {
+  if (consume('+')) {
+    return unary();
+  } else if (consume('-')) {
+    return new_node(ND_SUB, new_node_num(0), unary());
+  } else {
+    return primary();
   }
 }
 
@@ -249,7 +264,7 @@ int main(int argc, char **argv) {
 
   // アセンブリの前半部分を出力
   printf(".intel_syntax noprefix\n");
-  printf(".globl main\n");
+  printf(".global main\n");
   printf("main:\n");
 
   // 抽象構文木を下りながらコード生成

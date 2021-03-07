@@ -44,6 +44,18 @@ extern Token *token;
 //
 // Parser
 //
+typedef struct LVar LVar;
+
+// ローカル変数の型
+struct LVar {
+  LVar *next;
+  char *name;
+  int len;
+  int offset;
+};
+
+// ローカル変数
+LVar *locals;
 
 // 抽象構文木のノードの種類
 typedef enum {

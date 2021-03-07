@@ -40,6 +40,11 @@ bool consume(char *op) {
   return true;
 }
 
+Token *consume_ident(void) {
+  if (token->kind != TK_IDENT) return NULL;
+  return token;
+}
+
 // 次のトークンが期待している記号のときには、トークンを1つ読み進める。
 // それ以外の場合にはエラーを報告する。
 void expect(char *op) {
@@ -106,6 +111,11 @@ Token *tokenize(char *p) {
       continue;
     }
 
+    if ('a' <= *p && *p <= 'z') {
+      cur = new_token(TK_IDENT, cur, p++, 0);
+      cur->len = 1;
+      continue;
+    }
     error_at(p, "トークナイズできません");
   }
 

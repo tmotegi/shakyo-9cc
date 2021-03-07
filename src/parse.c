@@ -15,78 +15,89 @@ Node *new_node_num(int val) {
   return node;
 }
 
-Node *expr(void);
-Node *equality(void);
-Node *relational(void);
-Node *add(void);
-Node *mul(void);
-Node *unary(void);
-Node *primary(void);
+Node *code[100];
 
-// expr       = equality
-Node *expr(void) { return equality(); }
+// program    = stmt*
+void program(void) {
+  int i = 0;
+  while (!at_eof()) code[i++] = stmt();
+  code[i] = NULL;
+}
+
+// stmt       = expr ";"
+static Node *stmt(void) {
+  Node *node = expr();
+  expect(";");
+  return node;
+}
+
+// expr       = assign
+static Node *expr(void) { return assign(); }
+
+// assign     = equality ("=" assign)?
+static Node *assign(void) {
+  Node *node = equality();
+  if (consume("=")) node = new_node(ND_ASSIGN, node, assign());
+  return node;
+}
 
 // equality   = relational ("==" relational | "!=" relational)*
-Node *equality(void) {
+static Node *equality(void) {
   Node *node = relational();
 
   for (;;) {
-    if (consume("==")) {
+    if (consume("=="))
       node = new_node(ND_EQ, node, relational());
-    } else if (consume("!=")) {
+    else if (consume("!="))
       node = new_node(ND_NE, node, relational());
-    } else {
+    else
       return node;
-    }
   }
 }
 
 // relational = add ("<" add | "<=" add | ">" add | ">=" add)*
-Node *relational(void) {
+static Node *relational(void) {
   Node *node = add();
 
   for (;;) {
-    if (consume("<")) {
+    if (consume("<"))
       node = new_node(ND_LT, node, add());
-    } else if (consume("<=")) {
+    else if (consume("<="))
       node = new_node(ND_LE, node, add());
-    } else if (consume(">")) {
+    else if (consume(">"))
       node = new_node(ND_LT, add(), node);
-    } else if (consume(">=")) {
+    else if (consume(">="))
       node = new_node(ND_LE, add(), node);
-    } else {
+    else
       return node;
-    }
   }
 }
 
 // add        = mul ("+" mul | "-" mul)*
-Node *add(void) {
+static Node *add(void) {
   Node *node = mul();
 
   for (;;) {
-    if (consume("+")) {
+    if (consume("+"))
       node = new_node(ND_ADD, node, mul());
-    } else if (consume("-")) {
+    else if (consume("-"))
       node = new_node(ND_SUB, node, mul());
-    } else {
+    else
       return node;
-    }
   }
 }
 
 // mul     = unary ("*" unary | "/" unary)*
-Node *mul(void) {
+static Node *mul(void) {
   Node *node = unary();
 
   for (;;) {
-    if (consume("*")) {
+    if (consume("*"))
       node = new_node(ND_MUL, node, unary());
-    } else if (consume("/")) {
+    else if (consume("/"))
       node = new_node(ND_DIV, node, unary());
-    } else {
+    else
       return node;
-    }
   }
 }
 
@@ -94,19 +105,24 @@ Node *mul(void) {
 // (- | - | primary) = - - 10
 
 // unary   = ("+" | "-")? unary | primary
-Node *unary(void) {
-  if (consume("+")) {
+static Node *unary(void) {
+  if (consume("+"))
     return unary();
-  } else if (consume("-")) {
+  else if (consume("-"))
     return new_node(ND_SUB, new_node_num(0), unary());
-  } else {
+  else
     return primary();
-  }
 }
 
-// primary = num | "(" expr ")"
-Node *primary(void) {
-  if (consume("(")) {
+// primary = num | ident | "(" expr ")"
+static Node *primary(void) {
+  Token *tok = consume_ident();
+  if (tok) {
+    Node *node = calloc(1, sizeof(Node));
+    node->kind = ND_LVAR;
+    node->offset = (tok->str[0] - 'a' + 1) * 8;
+    return node;
+  } else if (consume("(")) {
     Node *node = expr();
     expect(")");
     return node;

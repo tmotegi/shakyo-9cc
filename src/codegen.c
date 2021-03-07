@@ -28,6 +28,13 @@ void gen(Node *node) {
       printf("  mov [rax], rdi\n");  // 左辺値に右辺値をストア
       printf("  push rdi\n");
       return;
+    case ND_RETURN:  // returnの返り値の式を評価して，スタックトップをRAXに設定して関数から戻る
+      gen(node->lhs);
+      printf("  pop rax\n");
+      printf("  mov rsp, rbp\n");
+      printf("  pop rbp\n");
+      printf("  ret\n");
+      return;
   }
 
   gen(node->lhs);

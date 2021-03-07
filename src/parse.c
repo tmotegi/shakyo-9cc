@@ -52,10 +52,18 @@ Function *program(void) {
   return prog;
 }
 
-// stmt       = expr ";"
+// stmt       = expr ";" | "return" expr ";"
 static Node *stmt(void) {
-  Node *node = expr();
-  expect(";");
+  Node *node;
+
+  if (consume("return")) {
+    node = calloc(1, sizeof(Node));
+    node->kind = ND_RETURN;
+    node->lhs = expr();
+  } else {
+    node = expr();
+  }
+  if (!consume(";")) error_at(token->str, "';'ではないトークンです");
   return node;
 }
 

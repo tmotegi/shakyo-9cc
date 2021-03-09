@@ -53,4 +53,9 @@ assert 3 '1; 2; return 3;'
 assert 3 'foo=3; return foo;'
 assert 8 'foo123=3; bar=5; return foo123+bar;'
 
+assert 0 'if (0) return 1; return 0;';
+assert 1 'if (1) return 1; return 0;';
+assert 0 'if (0) return 1; else return 0;';
+assert 1 'if (1) return 1; else return 0;';
+
 echo OK

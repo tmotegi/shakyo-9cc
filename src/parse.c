@@ -52,11 +52,25 @@ Function *program(void) {
   return prog;
 }
 
-// stmt       = expr ";" | "return" expr ";"
+// stmt    = expr ";"
+//         | "if" "(" expr ")" stmt ("else" stmt)?
+//         | "while" "(" expr ")" stmt
+//         | "for" "(" expr? ";" expr? ";" expr? ")" stmt
+//         | "return" expr ";"
 static Node *stmt(void) {
   Node *node;
-
-  if (consume("return")) {
+  if (consume("if")) {
+    node = calloc(1, sizeof(Node));
+    node->kind = ND_IF;
+    expect("(");
+    node->cond = expr();
+    expect(")");
+    node->then = stmt();
+    if (consume("else")) {
+      node->els = stmt();
+    }
+    return node;
+  } else if (consume("return")) {
     node = calloc(1, sizeof(Node));
     node->kind = ND_RETURN;
     node->lhs = expr();

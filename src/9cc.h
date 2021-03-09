@@ -37,7 +37,7 @@ void expect(char *op);
 int expect_number(void);
 bool at_eof(void);
 
-Token *tokenize(void);
+Token *tokenize();
 
 extern char *user_input;
 extern Token *token;
@@ -70,6 +70,9 @@ typedef enum {
   ND_LVAR,       // ローカル変数
   ND_RETURN,     // Return
   ND_EXPR_STMT,  // Expression statement
+  ND_IF,         // If
+  ND_WHILE,      // While
+  ND_FOR,        // For
 } NodeKind;
 
 typedef struct Node Node;
@@ -82,10 +85,11 @@ struct Node {
   Node *rhs;  // 右辺
   int val;    // kindがND_NUMの場合のみ使う
   LVar *var;  // kind==ND_LVAR
-};
 
-Node *new_node(NodeKind kind, Node *lhs, Node *rhs);
-Node *new_node_num(int val);
+  Node *cond;
+  Node *then;
+  Node *els;
+};
 
 typedef struct Function Function;
 struct Function {
@@ -100,4 +104,3 @@ Function *program(void);
 // Code generator
 //
 void codegen(Function *prog);
-void gen(Node *node);

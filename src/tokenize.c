@@ -33,7 +33,8 @@ void error_at(char *loc, char *fmt, ...) {
 // 次のトークンが期待している記号のときには、トークンを1つ読み進めて
 // 真を返す。それ以外の場合には偽を返す。
 bool consume(char *op) {
-  if ((token->kind != TK_RESERVED && token->kind != TK_RETURN) ||
+  if ((token->kind != TK_RESERVED && token->kind != TK_RETURN &&
+       token->kind != TK_IF) ||
       strlen(op) != token->len || memcmp(token->str, op, token->len))
     return false;
   token = token->next;
@@ -99,6 +100,30 @@ Token *tokenize() {
     if (startswith(p, "return") && !isalnum(p[6])) {
       cur = new_token(TK_RETURN, cur, p, 6);
       p += 6;
+      continue;
+    }
+
+    if (startswith(p, "if") && !isalnum(p[2])) {
+      cur = new_token(TK_IF, cur, p, 2);
+      p += 2;
+      continue;
+    }
+
+    if (startswith(p, "else") && !isalnum(p[4])) {
+      cur = new_token(TK_IF, cur, p, 4);
+      p += 4;
+      continue;
+    }
+
+    if (startswith(p, "while") && !isalnum(p[5])) {
+      cur = new_token(TK_WHILE, cur, p, 5);
+      p += 5;
+      continue;
+    }
+
+    if (startswith(p, "for") && !isalnum(p[3])) {
+      cur = new_token(TK_FOR, cur, p, 3);
+      p += 3;
       continue;
     }
 

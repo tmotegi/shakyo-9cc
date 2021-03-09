@@ -58,4 +58,6 @@ assert 1 'if (1) return 1; return 0;';
 assert 0 'if (0) return 1; else return 0;';
 assert 1 'if (1) return 1; else return 0;';
 
+assert 10 'i=0; while(i<10) i=i+1; return i;'
+
 echo OK

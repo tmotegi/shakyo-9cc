@@ -1,7 +1,7 @@
 #include "9cc.h"
 
 // ラベル用のカウンタ
-int label_counter = 0;
+static int label_counter = 0;
 
 // 変数のアドレスをスタックにプッシュする
 void gen_lval(Node *node) {
@@ -59,6 +59,18 @@ void gen(Node *node) {
         gen(node->then);
         printf(".Lend%d:\n", label);
       }
+      return;
+    }
+    case ND_WHILE: {
+      int label = label_counter++;
+      printf(".Lbegin%d:\n", label);
+      gen(node->cond);
+      printf("  pop rax\n");
+      printf("  cmp rax, 0\n");
+      printf("  je .Lend%d\n", label);
+      gen(node->then);
+      printf("  jmp .Lbegin%d\n", label);
+      printf(".Lend%d:\n", label);
       return;
     }
   }

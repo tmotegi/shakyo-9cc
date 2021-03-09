@@ -86,6 +86,7 @@ struct Node {
   int val;    // kindがND_NUMの場合のみ使う
   LVar *var;  // kind==ND_LVAR
 
+  // "if" or "while" statement
   Node *cond;
   Node *then;
   Node *els;

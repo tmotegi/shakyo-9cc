@@ -17,7 +17,7 @@ void gen(Node *node) {
     case ND_LVAR:  // 変数の値をスタックにプッシュする
       gen_lval(node);
       printf("  pop rax\n");
-      printf("  mov rax, [rax]");
+      printf("  mov rax, [rax]\n");
       printf("  push rax\n");
       return;
     case ND_ASSIGN:

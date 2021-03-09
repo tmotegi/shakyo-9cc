@@ -42,7 +42,9 @@ bool consume(char *op) {
 
 Token *consume_ident(void) {
   if (token->kind != TK_IDENT) return NULL;
-  return token;
+  Token *tok = token;
+  token = token->next;
+  return tok;
 }
 
 // 次のトークンが期待している記号のときには、トークンを1つ読み進める。

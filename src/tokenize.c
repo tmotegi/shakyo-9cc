@@ -33,9 +33,8 @@ void error_at(char *loc, char *fmt, ...) {
 // 次のトークンが期待している記号のときには、トークンを1つ読み進めて
 // 真を返す。それ以外の場合には偽を返す。
 bool consume(char *op) {
-  if ((token->kind != TK_RESERVED && token->kind != TK_RETURN &&
-       token->kind != TK_IF) ||
-      strlen(op) != token->len || memcmp(token->str, op, token->len))
+  if (token->kind != TK_RESERVED || strlen(op) != token->len ||
+      memcmp(token->str, op, token->len))
     return false;
   token = token->next;
   return true;
@@ -82,6 +81,24 @@ static bool startswith(char *p, char *q) {
   return strncmp(p, q, strlen(q)) == 0;
 }
 
+static char *starts_with_reserved(char *p) {
+  // Keyword
+  static char *kw[] = {"return", "if", "else"};
+
+  for (int i = 0; i < sizeof(kw) / sizeof(*kw); i++) {
+    int len = strlen(kw[i]);
+    if (startswith(p, kw[i]) && !isalnum(p[len])) return kw[i];
+  }
+
+  // Multi-letter punctuator
+  static char *ops[] = {"==", "!=", "<=", ">="};
+
+  for (int i = 0; i < sizeof(ops) / sizeof(*ops); i++)
+    if (startswith(p, ops[i])) return ops[i];
+
+  return NULL;
+}
+
 // 入力文字列pをトークナイズしてそれを返す
 Token *tokenize() {
   char *p = user_input;
@@ -96,42 +113,12 @@ Token *tokenize() {
       continue;
     }
 
-    // Return
-    if (startswith(p, "return") && !isalnum(p[6])) {
-      cur = new_token(TK_RETURN, cur, p, 6);
-      p += 6;
-      continue;
-    }
-
-    if (startswith(p, "if") && !isalnum(p[2])) {
-      cur = new_token(TK_IF, cur, p, 2);
-      p += 2;
-      continue;
-    }
-
-    if (startswith(p, "else") && !isalnum(p[4])) {
-      cur = new_token(TK_IF, cur, p, 4);
-      p += 4;
-      continue;
-    }
-
-    if (startswith(p, "while") && !isalnum(p[5])) {
-      cur = new_token(TK_WHILE, cur, p, 5);
-      p += 5;
-      continue;
-    }
-
-    if (startswith(p, "for") && !isalnum(p[3])) {
-      cur = new_token(TK_FOR, cur, p, 3);
-      p += 3;
-      continue;
-    }
-
-    // Multi-letter punctuators
-    if (startswith(p, "==") || startswith(p, "!=") || startswith(p, "<=") ||
-        startswith(p, ">=")) {
-      cur = new_token(TK_RESERVED, cur, p, 2);
-      p += 2;
+    // Keywords or multi-letter punctuators
+    char *kw = starts_with_reserved(p);
+    if (kw) {
+      int len = strlen(kw);
+      cur = new_token(TK_RESERVED, cur, p, len);
+      p += len;
       continue;
     }
 

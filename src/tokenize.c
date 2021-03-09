@@ -114,9 +114,11 @@ Token *tokenize() {
       continue;
     }
 
-    if ('a' <= *p && *p <= 'z') {
-      cur = new_token(TK_IDENT, cur, p++, 0);
-      cur->len = 1;
+    // 変数名を獲得する
+    if (isalnum(*p)) {
+      char *q = p;
+      while (isalnum(*p)) p++;
+      cur = new_token(TK_IDENT, cur, q, p - q);
       continue;
     }
     error_at(p, "トークナイズできません");

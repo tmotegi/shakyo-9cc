@@ -20,7 +20,7 @@ Node *new_node_num(int val) {
 // 変数を名前で検索する。見つからなかった場合はNULLを返す。
 LVar *find_lvar(Token *tok) {
   for (LVar *var = locals; var; var = var->next)
-    if (var->len = tok->len && memcmp(var->name, tok->str, var->len) == 0)
+    if (var->len == tok->len && memcmp(var->name, tok->str, var->len) == 0)
       return var;
   return NULL;
 }
@@ -76,6 +76,24 @@ static Node *stmt(void) {
     expect("(");
     node->cond = expr();
     expect(")");
+    node->then = stmt();
+    return node;
+  } else if (consume("for")) {
+    node = calloc(1, sizeof(Node));
+    node->kind = ND_FOR;
+    expect("(");
+    if (!consume(";")) {
+      node->init = expr();
+      expect(";");
+    }
+    if (!consume(";")) {
+      node->cond = expr();
+      expect(";");
+    }
+    if (!consume(")")) {
+      node->step = expr();
+      expect(")");
+    }
     node->then = stmt();
     return node;
   } else if (consume("return")) {

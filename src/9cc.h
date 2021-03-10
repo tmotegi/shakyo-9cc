@@ -90,6 +90,10 @@ struct Node {
   Node *cond;
   Node *then;
   Node *els;
+
+  // "for" statement
+  Node *init;
+  Node *step;
 };
 
 typedef struct Function Function;

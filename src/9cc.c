@@ -8,8 +8,8 @@ int main(int argc, char **argv) {
 
   // トークナイズしてパースする
   user_input = argv[1];
-  token = tokenize(argv[1]);
-  program();
+  token = tokenize();
+  Node *node = program();
 
   // アセンブリの前半部分を出力
   printf(".intel_syntax noprefix\n");
@@ -23,8 +23,8 @@ int main(int argc, char **argv) {
   printf("  sub rsp, 208\n");
 
   // 先頭の式から順にコード生成
-  for (int i = 0; code[i]; i++) {
-    gen(code[i]);
+  for (Node *n = node; n; n = n->next) {
+    gen(n);
 
     // 式の評価結果としてスタックに一つの値が残っている
     // はずなので、スタックが溢れないようにポップしておく

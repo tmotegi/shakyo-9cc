@@ -36,9 +36,7 @@ void expect(char *op);
 int expect_number(void);
 bool at_eof(void);
 
-Token *new_token(TokenKind kind, Token *cur, char *str, int lne);
-static bool statswith(char *p, char *q);
-Token *tokenize(char *p);
+Token *tokenize(void);
 
 extern char *user_input;
 extern Token *token;
@@ -67,6 +65,7 @@ typedef struct Node Node;
 // 抽象構文木のノードの型
 struct Node {
   NodeKind kind;  // ノードの型
+  Node *next;
   Node *lhs;      // 左辺
   Node *rhs;      // 右辺
   int val;        // kindがND_NUMの場合のみ使う
@@ -76,18 +75,7 @@ struct Node {
 Node *new_node(NodeKind kind, Node *lhs, Node *rhs);
 Node *new_node_num(int val);
 
-void program(void);
-static Node *stmt(void);
-static Node *expr(void);
-static Node *assign(void);
-static Node *equality(void);
-static Node *relational(void);
-static Node *add(void);
-static Node *mul(void);
-static Node *unary(void);
-static Node *primary(void);
-
-extern Node *code[100];
+Node *program(void);
 
 //
 // Code generator

@@ -1,5 +1,7 @@
 #include "9cc.h"
 
+LVar *locals;
+
 Node *new_node(NodeKind kind, Node *lhs, Node *rhs) {
   Node *node = calloc(1, sizeof(Node));
   node->kind = kind;
@@ -34,14 +36,20 @@ static Node *unary(void);
 static Node *primary(void);
 
 // program    = stmt*
-Node *program(void) {
+Function *program(void) {
+  locals = NULL;
+
   Node head = {};
   Node *cur = &head;
   while (!at_eof()) {
     cur->next = stmt();
     cur = cur->next;
   }
-  return head.next;
+
+  Function *prog = calloc(1, sizeof(Function));
+  prog->node = head.next;
+  prog->locals = locals;
+  return prog;
 }
 
 // stmt       = expr ";"
@@ -138,25 +146,18 @@ static Node *unary(void) {
 static Node *primary(void) {
   Token *tok = consume_ident();
   if (tok) {
-    Node *node = calloc(1, sizeof(Node));
-    node->kind = ND_LVAR;
     LVar *lvar = find_lvar(tok);
-    if (lvar) {
-      node->offset = lvar->offset;
-    } else {
+    if (!lvar) {
       // 変数のリストの先頭に新しい変数を追加する
       lvar = calloc(1, sizeof(LVar));
       lvar->next = locals;
       lvar->name = tok->str;
       lvar->len = tok->len;
-      int offset = 0;
-      if (locals != NULL) {
-        offset = locals->offset;
-      }
-      lvar->offset = offset + 8;
-      node->offset = lvar->offset;
       locals = lvar;
     }
+    Node *node = calloc(1, sizeof(Node));
+    node->kind = ND_LVAR;
+    node->var = lvar;
     return node;
   } else if (consume("(")) {
     Node *node = expr();

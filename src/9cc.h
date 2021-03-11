@@ -54,9 +54,6 @@ struct LVar {
   int offset;
 };
 
-// ローカル変数
-LVar *locals;
-
 // 抽象構文木のノードの種類
 typedef enum {
   ND_ADD,     // +
@@ -78,18 +75,25 @@ typedef struct Node Node;
 struct Node {
   NodeKind kind;  // ノードの型
   Node *next;
-  Node *lhs;      // 左辺
-  Node *rhs;      // 右辺
-  int val;        // kindがND_NUMの場合のみ使う
-  int offset;     // kindがND_LVARの場合のみ使う
+  Node *lhs;  // 左辺
+  Node *rhs;  // 右辺
+  int val;    // kindがND_NUMの場合のみ使う
+  LVar *var;  // kind==ND_LVAR
 };
 
 Node *new_node(NodeKind kind, Node *lhs, Node *rhs);
 Node *new_node_num(int val);
 
-Node *program(void);
+typedef struct Function Function;
+struct Function {
+  Node *node;
+  LVar *locals;
+  int stack_size;
+};
+Function *program(void);
 
 //
 // Code generator
 //
+void codegen(Function *prog);
 void gen(Node *node);

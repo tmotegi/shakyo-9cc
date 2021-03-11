@@ -3,7 +3,6 @@
 // 変数のアドレスをスタックにプッシュする
 void gen_lval(Node *node) {
   if (node->kind != ND_LVAR) error("代入の左辺値が変数ではありません");
-
   printf("  mov rax, rbp\n");
   printf("  sub rax, %d\n", node->var->offset);
   printf("  push rax\n");
@@ -13,6 +12,10 @@ void gen(Node *node) {
   switch (node->kind) {
     case ND_NUM:
       printf("  push %d\n", node->val);
+      return;
+    case ND_EXPR_STMT:
+      gen(node->lhs);
+      printf("  add rsp, 8\n");
       return;
     case ND_LVAR:  // 変数の値をスタックにプッシュする
       gen_lval(node);
@@ -89,19 +92,12 @@ void codegen(Function *prog) {
   printf("main:\n");
 
   // プロローグ
-  // 変数26個分の領域を確保する
   printf("  push rbp\n");
   printf("  mov rbp, rsp\n");
   printf("  sub rsp, %d\n", prog->stack_size);
 
   // 先頭の式から順にコード生成
-  for (Node *node = prog->node; node; node = node->next) {
-    gen(node);
-
-    // 式の評価結果としてスタックに一つの値が残っている
-    // はずなので、スタックが溢れないようにポップしておく
-    printf("  pop rax\n");
-  }
+  for (Node *node = prog->node; node; node = node->next) gen(node);
 
   // エピローグ
   // 最後の式の結果がRAXに残っているのでそれが返り値になる

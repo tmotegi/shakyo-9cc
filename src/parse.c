@@ -61,9 +61,11 @@ static Node *stmt(void) {
     node->kind = ND_RETURN;
     node->lhs = expr();
   } else {
-    node = expr();
+    node = calloc(1, sizeof(Node));
+    node->kind = ND_EXPR_STMT;
+    node->lhs = expr();
   }
-  if (!consume(";")) error_at(token->str, "';'ではないトークンです");
+  expect(";");
   return node;
 }
 

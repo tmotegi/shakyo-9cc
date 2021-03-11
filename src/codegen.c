@@ -34,9 +34,7 @@ void gen(Node *node) {
     case ND_RETURN:  // returnの返り値の式を評価して，スタックトップをRAXに設定して関数から戻る
       gen(node->lhs);
       printf("  pop rax\n");
-      printf("  mov rsp, rbp\n");
-      printf("  pop rbp\n");
-      printf("  ret\n");
+      printf("  jmp .L.return\n");
       return;
   }
 
@@ -101,6 +99,7 @@ void codegen(Function *prog) {
 
   // エピローグ
   // 最後の式の結果がRAXに残っているのでそれが返り値になる
+  printf(".L.return:\n");
   printf("  mov rsp, rbp\n");
   printf("  pop rbp\n");
   printf("  ret\n");

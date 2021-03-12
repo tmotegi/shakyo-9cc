@@ -99,7 +99,9 @@ struct Node {
 
   int val;        // kind==ND_NUM
   LVar *var;      // kind==ND_LVAR
+
   char *funcname;  // kind==ND_FUNCALL
+  Node *args; // "func call" statement
 };
 
 typedef struct Function Function;

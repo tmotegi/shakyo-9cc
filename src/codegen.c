@@ -3,6 +3,10 @@
 // ラベル用のカウンタ
 static int label_counter = 0;
 
+// レジスタ
+// https://www.sigbus.info/compilerbook#%E6%95%B4%E6%95%B0%E3%83%AC%E3%82%B8%E3%82%B9%E3%82%BF%E3%81%AE%E4%B8%80%E8%A6%A7
+static char *argreg[] = {"rdi", "rsi", "rdx", "rcx", "r8", "r9"};
+
 // 変数のアドレスをスタックにプッシュする
 void gen_lval(Node *node) {
   if (node->kind != ND_LVAR) error("代入の左辺値が変数ではありません");
@@ -92,10 +96,16 @@ void gen(Node *node) {
     case ND_BLOCK:
       for (Node *n = node->body; n; n = n->next) gen(n);
       return;
-    case ND_FUNCALL:
+    case ND_FUNCALL: {
+      int reg_counter = 0;
+      for (Node *arg = node->args; arg; arg = arg->next, reg_counter++)
+        gen(arg);
+      for (int i = reg_counter - 1; i >= 0; i--)
+        printf("  pop %s\n", argreg[i]);
       printf("  call %s\n", node->funcname);
       printf("  push rax\n");
       return;
+    }
   }
 
   gen(node->lhs);

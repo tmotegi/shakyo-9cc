@@ -206,8 +206,22 @@ static Node *unary(void) {
     return primary();
 }
 
+// func-args = "(" (expr ("," expr)*)? ")"
+static Node *func_args(void) {
+  if (consume(")")) return NULL;  // 引数なし
+  // 引数を引数のリスト作成
+  Node *head = expr();
+  Node *cur = head;
+  while (consume(",")) {
+    cur->next = assign();
+    cur = cur->next;
+  }
+  expect(")");
+  return head;
+}
+
 // primary = num
-//         | ident ("(" ")")?
+//         | ident func-args?
 //         | "(" expr ")"
 static Node *primary(void) {
   Node *node;
@@ -215,12 +229,12 @@ static Node *primary(void) {
   if (tok) {
     if (consume("(")) {
       // 関数の場合
-      expect(")");
       node = calloc(1, sizeof(Node));
       node->kind = ND_FUNCALL;
       node->funcname = calloc(tok->len + 1, sizeof(char));
       memcpy(node->funcname, tok->str, tok->len);
       node->funcname[tok->len] = '\0';
+      node->args = func_args();
       return node;
     } else {
       // 変数の場合

@@ -92,6 +92,10 @@ void gen(Node *node) {
     case ND_BLOCK:
       for (Node *n = node->body; n; n = n->next) gen(n);
       return;
+    case ND_FUNCALL:
+      printf("  call %s\n", node->funcname);
+      printf("  push rax\n");
+      return;
   }
 
   gen(node->lhs);

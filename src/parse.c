@@ -206,25 +206,40 @@ static Node *unary(void) {
     return primary();
 }
 
-// primary = num | ident | "(" expr ")"
+// primary = num
+//         | ident ("(" ")")?
+//         | "(" expr ")"
 static Node *primary(void) {
+  Node *node;
   Token *tok = consume_ident();
   if (tok) {
-    LVar *lvar = find_lvar(tok);
-    if (!lvar) {
-      // 変数のリストの先頭に新しい変数を追加する
-      lvar = calloc(1, sizeof(LVar));
-      lvar->next = locals;
-      lvar->name = tok->str;
-      lvar->len = tok->len;
-      locals = lvar;
+    if (consume("(")) {
+      // 関数の場合
+      expect(")");
+      node = calloc(1, sizeof(Node));
+      node->kind = ND_FUNCALL;
+      node->funcname = calloc(tok->len + 1, sizeof(char));
+      memcpy(node->funcname, tok->str, tok->len);
+      node->funcname[tok->len] = '\0';
+      return node;
+    } else {
+      // 変数の場合
+      LVar *lvar = find_lvar(tok);
+      if (!lvar) {
+        // 変数のリストの先頭に新しい変数を追加する
+        lvar = calloc(1, sizeof(LVar));
+        lvar->next = locals;
+        lvar->name = tok->str;
+        lvar->len = tok->len;
+        locals = lvar;
+      }
+      node = calloc(1, sizeof(Node));
+      node->kind = ND_LVAR;
+      node->var = lvar;
+      return node;
     }
-    Node *node = calloc(1, sizeof(Node));
-    node->kind = ND_LVAR;
-    node->var = lvar;
-    return node;
   } else if (consume("(")) {
-    Node *node = expr();
+    node = expr();
     expect(")");
     return node;
   }

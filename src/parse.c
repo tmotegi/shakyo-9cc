@@ -53,13 +53,18 @@ Function *program(void) {
 }
 
 // stmt    = expr ";"
+//         | "return" expr ";"
 //         | "if" "(" expr ")" stmt ("else" stmt)?
 //         | "while" "(" expr ")" stmt
 //         | "for" "(" expr? ";" expr? ";" expr? ")" stmt
-//         | "return" expr ";"
+//         | "{" stmt* "}"
 static Node *stmt(void) {
   Node *node;
-  if (consume("if")) {
+  if (consume("return")) {
+    node = calloc(1, sizeof(Node));
+    node->kind = ND_RETURN;
+    node->lhs = expr();
+  } else if (consume("if")) {
     node = calloc(1, sizeof(Node));
     node->kind = ND_IF;
     expect("(");
@@ -96,10 +101,19 @@ static Node *stmt(void) {
     }
     node->then = stmt();
     return node;
-  } else if (consume("return")) {
+  } else if (consume("{")) {
+    Node head = {};
+    Node *cur = &head;
+
+    while (!consume("}")) {
+      cur->next = stmt();
+      cur = cur->next;
+    }
+
     node = calloc(1, sizeof(Node));
-    node->kind = ND_RETURN;
-    node->lhs = expr();
+    node->kind = ND_BLOCK;
+    node->body = head.next;
+    return node;
   } else {
     node = calloc(1, sizeof(Node));
     node->kind = ND_EXPR_STMT;

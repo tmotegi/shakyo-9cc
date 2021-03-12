@@ -73,6 +73,7 @@ typedef enum {
   ND_IF,         // If
   ND_WHILE,      // While
   ND_FOR,        // For
+  ND_BLOCK,      // Block
 } NodeKind;
 
 typedef struct Node Node;
@@ -83,8 +84,6 @@ struct Node {
   Node *next;
   Node *lhs;  // 左辺
   Node *rhs;  // 右辺
-  int val;    // kindがND_NUMの場合のみ使う
-  LVar *var;  // kind==ND_LVAR
 
   // "if" or "while" statement
   Node *cond;
@@ -94,6 +93,11 @@ struct Node {
   // "for" statement
   Node *init;
   Node *step;
+
+  Node *body;  // "block" statement
+
+  int val;    // kind==ND_NUM
+  LVar *var;  // kind==ND_LVAR
 };
 
 typedef struct Function Function;

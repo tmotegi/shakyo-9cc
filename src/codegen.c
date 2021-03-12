@@ -89,6 +89,9 @@ void gen(Node *node) {
       printf(".Lend%d:\n", label);
       return;
     }
+    case ND_BLOCK:
+      for (Node *n = node->body; n; n = n->next) gen(n);
+      return;
   }
 
   gen(node->lhs);

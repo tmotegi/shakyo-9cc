@@ -2,6 +2,7 @@
 
 // ラベル用のカウンタ
 static int label_counter = 0;
+static char *funcname;
 
 // レジスタ
 // https://www.sigbus.info/compilerbook#%E6%95%B4%E6%95%B0%E3%83%AC%E3%82%B8%E3%82%B9%E3%82%BF%E3%81%AE%E4%B8%80%E8%A6%A7
@@ -41,7 +42,7 @@ void gen(Node *node) {
     case ND_RETURN:  // returnの返り値の式を評価して，スタックトップをRAXに設定して関数から戻る
       gen(node->lhs);
       printf("  pop rax\n");
-      printf("  jmp .L.return\n");
+      printf("  jmp .L.return.%s\n", funcname);
       return;
     case ND_IF: {
       int label = label_counter++;
@@ -154,23 +155,26 @@ void gen(Node *node) {
 }
 
 void codegen(Function *prog) {
-  // アセンブリの前半部分を出力
   printf(".intel_syntax noprefix\n");
-  printf(".global main\n");
-  printf("main:\n");
+  for (Function *fn = prog; fn; fn = fn->next) {
+    // アセンブリの前半部分を出力
+    printf(".global %s\n", fn->name);
+    printf("%s:\n", fn->name);
+    funcname = fn->name;
 
-  // プロローグ
-  printf("  push rbp\n");
-  printf("  mov rbp, rsp\n");
-  printf("  sub rsp, %d\n", prog->stack_size);
+    // プロローグ
+    printf("  push rbp\n");
+    printf("  mov rbp, rsp\n");
+    printf("  sub rsp, %d\n", fn->stack_size);
 
-  // 先頭の式から順にコード生成
-  for (Node *node = prog->node; node; node = node->next) gen(node);
+    // 先頭の式から順にコード生成
+    for (Node *node = fn->node; node; node = node->next) gen(node);
 
-  // エピローグ
-  // 最後の式の結果がRAXに残っているのでそれが返り値になる
-  printf(".L.return:\n");
-  printf("  mov rsp, rbp\n");
-  printf("  pop rbp\n");
-  printf("  ret\n");
+    // エピローグ
+    // 最後の式の結果がRAXに残っているのでそれが返り値になる
+    printf(".L.return.%s:\n", fn->name);
+    printf("  mov rsp, rbp\n");
+    printf("  pop rbp\n");
+    printf("  ret\n");
+  }
 }

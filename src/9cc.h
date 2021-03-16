@@ -35,9 +35,10 @@ bool consume(char *op);
 Token *consume_ident(void);
 void expect(char *op);
 int expect_number(void);
+char *expect_ident(void);
 bool at_eof(void);
 
-Token *tokenize();
+Token *tokenize(void);
 
 extern char *user_input;
 extern Token *token;
@@ -106,6 +107,8 @@ struct Node {
 
 typedef struct Function Function;
 struct Function {
+  Function *next;
+  char *name;
   Node *node;
   LVar *locals;
   int stack_size;

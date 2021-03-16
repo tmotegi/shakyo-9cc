@@ -58,11 +58,20 @@ void expect(char *op) {
 
 // 次のトークンが数値の場合、トークンを1つ読み進めてその数値を返す。
 // それ以外の場合にはエラーを報告する。
-int expect_number() {
+int expect_number(void) {
   if (token->kind != TK_NUM) error_at(token->str, "数ではありません");
   int val = token->val;
   token = token->next;
   return val;
+}
+
+char *expect_ident(void) {
+  if (token->kind != TK_IDENT) error_at(token->str, "識別子ではありません");
+  char *name = calloc(token->len + 1, sizeof(char));
+  memcpy(name, token->str, token->len);
+  name[token->len] = '\0';
+  token = token->next;
+  return name;
 }
 
 bool at_eof() { return token->kind == TK_EOF; }

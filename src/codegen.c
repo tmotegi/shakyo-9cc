@@ -167,6 +167,11 @@ void codegen(Function *prog) {
     printf("  mov rbp, rsp\n");
     printf("  sub rsp, %d\n", fn->stack_size);
 
+    // 引数の値をローカル変数の領域に書き込む
+    int i = 0;
+    for (VarList *vl = fn->args; vl; vl = vl->next)
+      printf("  mov [rbp-%d], %s\n", vl->var->offset, argreg[i++]);
+
     // 先頭の式から順にコード生成
     for (Node *node = fn->node; node; node = node->next) gen(node);
 

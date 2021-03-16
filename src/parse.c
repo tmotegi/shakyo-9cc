@@ -1,6 +1,6 @@
 #include "9cc.h"
 
-LVar *locals;
+static VarList *locals;
 
 Node *new_node(NodeKind kind, Node *lhs, Node *rhs) {
   Node *node = calloc(1, sizeof(Node));
@@ -18,11 +18,26 @@ Node *new_node_num(int val) {
 }
 
 // 変数を名前で検索する。見つからなかった場合はNULLを返す。
-LVar *find_lvar(Token *tok) {
-  for (LVar *var = locals; var; var = var->next)
-    if (var->len == tok->len && memcmp(var->name, tok->str, var->len) == 0)
+static Var *find_var(Token *tok) {
+  for (VarList *vl = locals; vl; vl = vl->next) {
+    Var *var = vl->var;
+    if (strlen(var->name) == tok->len &&
+        memcmp(var->name, tok->str, var->len) == 0)
       return var;
+  }
   return NULL;
+}
+
+static Var *new_lvar(char *name) {
+  Var *var = calloc(1, sizeof(Var));
+  var->name = name;
+  var->len = strlen(name);
+
+  VarList *vl = calloc(1, sizeof(VarList));
+  vl->var = var;
+  vl->next = locals;
+  locals = vl;
+  return var;
 }
 
 static Function *function(void);
@@ -49,12 +64,31 @@ Function *program(void) {
   return head.next;
 }
 
-// function = ident "(" ")" "{" stmt* "}"
+static VarList *read_func_args(void) {
+  if (consume(")")) return NULL;  // 引数なし
+  // 引数を引数のリスト作成
+  VarList *head = calloc(1, sizeof(VarList));
+  head->var = new_lvar(expect_ident());
+  VarList *cur = head;
+
+  while (consume(",")) {
+    // locals に引数を追加する
+    cur->next = calloc(1, sizeof(VarList));
+    cur->next->var = new_lvar(expect_ident());
+    cur = cur->next;
+  }
+  expect(")");
+  return head;
+}
+
+// function = ident read-func-args "{" stmt* "}"
 static Function *function(void) {
   locals = NULL;
-  char *name = expect_ident();
+
+  Function *fn = calloc(1, sizeof(Function));
+  fn->name = expect_ident();
   expect("(");
-  expect(")");
+  fn->args = read_func_args();  // 引数のリスト
   expect("{");
 
   Node head = {};
@@ -64,11 +98,9 @@ static Function *function(void) {
     cur = cur->next;
   }
 
-  Function *prog = calloc(1, sizeof(Function));
-  prog->name = name;
-  prog->node = head.next;
-  prog->locals = locals;
-  return prog;
+  fn->node = head.next;
+  fn->locals = locals;
+  return fn;
 }
 
 // stmt    = expr ";"
@@ -257,18 +289,17 @@ static Node *primary(void) {
       return node;
     } else {
       // 変数の場合
-      LVar *lvar = find_lvar(tok);
-      if (!lvar) {
+      Var *var = find_var(tok);
+      if (!var) {
         // 変数のリストの先頭に新しい変数を追加する
-        lvar = calloc(1, sizeof(LVar));
-        lvar->next = locals;
-        lvar->name = tok->str;
-        lvar->len = tok->len;
-        locals = lvar;
+        char *name = calloc(tok->len + 1, sizeof(char));
+        memcpy(name, tok->str, tok->len);
+        name[tok->len] = '\0';
+        var = new_lvar(name);
       }
       node = calloc(1, sizeof(Node));
       node->kind = ND_LVAR;
-      node->var = lvar;
+      node->var = var;
       return node;
     }
   } else if (consume("(")) {

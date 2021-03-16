@@ -46,14 +46,20 @@ extern Token *token;
 //
 // Parser
 //
-typedef struct LVar LVar;
+typedef struct Var Var;
 
 // ローカル変数の型
-struct LVar {
-  LVar *next;
+struct Var {
   char *name;
   int len;
   int offset;
+};
+
+typedef struct VarList VarList;
+
+struct VarList {
+  VarList *next;
+  Var *var;
 };
 
 // 抽象構文木のノードの種類
@@ -99,7 +105,7 @@ struct Node {
   Node *body;  // "block" statement
 
   int val;        // kind==ND_NUM
-  LVar *var;      // kind==ND_LVAR
+  Var *var;      // kind==ND_LVAR
 
   char *funcname;  // kind==ND_FUNCALL
   Node *args; // "func call" statement
@@ -110,7 +116,8 @@ struct Function {
   Function *next;
   char *name;
   Node *node;
-  LVar *locals;
+  VarList *locals;
+  VarList *args;
   int stack_size;
 };
 

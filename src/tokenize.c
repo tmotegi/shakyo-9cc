@@ -30,12 +30,17 @@ void error_at(char *loc, char *fmt, ...) {
   exit(1);
 }
 
+Token *peek(char *s) {
+  if (token->kind != TK_RESERVED || strlen(s) != token->len ||
+      memcmp(token->str, s, token->len))
+    return NULL;
+  return token;
+}
+
 // 次のトークンが期待している記号のときには、トークンを1つ読み進めて
 // 真を返す。それ以外の場合には偽を返す。
 bool consume(char *op) {
-  if (token->kind != TK_RESERVED || strlen(op) != token->len ||
-      memcmp(token->str, op, token->len))
-    return false;
+  if (!peek(op)) return false;
   token = token->next;
   return true;
 }
@@ -50,9 +55,7 @@ Token *consume_ident(void) {
 // 次のトークンが期待している記号のときには、トークンを1つ読み進める。
 // それ以外の場合にはエラーを報告する。
 void expect(char *op) {
-  if (token->kind != TK_RESERVED || strlen(op) != token->len ||
-      memcmp(token->str, op, token->len))
-    error_at(token->str, "'%s'ではありません", op);
+  if (!peek(op)) error_at(token->str, "'%s'ではありません", op);
   token = token->next;
 }
 
@@ -92,7 +95,7 @@ static bool startswith(char *p, char *q) {
 
 static char *starts_with_reserved(char *p) {
   // Keyword
-  static char *kw[] = {"return", "if", "else", "while", "for"};
+  static char *kw[] = {"return", "if", "else", "while", "for", "int"};
 
   for (int i = 0; i < sizeof(kw) / sizeof(*kw); i++) {
     int len = strlen(kw[i]);

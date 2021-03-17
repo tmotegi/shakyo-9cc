@@ -8,6 +8,7 @@
 //
 // Tokenizer
 //
+typedef struct Type Type;
 
 // トークンの種類
 typedef enum {
@@ -31,6 +32,7 @@ struct Token {
 
 void error(char *fmt, ...);
 void error_at(char *loc, char *fmt, ...);
+Token *peek(char *s);
 bool consume(char *op);
 Token *consume_ident(void);
 void expect(char *op);
@@ -51,6 +53,7 @@ typedef struct Var Var;
 // ローカル変数の型
 struct Var {
   char *name;
+  Type *ty;
   int len;
   int offset;
 };
@@ -82,8 +85,8 @@ typedef enum {
   ND_FOR,        // For
   ND_BLOCK,      // Block
   ND_FUNCALL,    // Function call
-  ND_ADDR,       // *
-  ND_DEREF,      // &
+  ND_ADDR,       // &
+  ND_DEREF,      // *
 } NodeKind;
 
 typedef struct Node Node;
@@ -92,6 +95,8 @@ typedef struct Node Node;
 struct Node {
   NodeKind kind;  // ノードの型
   Node *next;
+  Type *ty;
+
   Node *lhs;  // 左辺
   Node *rhs;  // 右辺
 
@@ -124,6 +129,18 @@ struct Function {
 };
 
 Function *program(void);
+
+// type
+
+typedef enum { TY_INT } TypeKind;
+
+struct Type {
+  TypeKind kind;
+};
+
+extern Type *int_type;
+
+bool is_integer(Type *ty);
 
 //
 // Code generator

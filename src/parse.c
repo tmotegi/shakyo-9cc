@@ -28,10 +28,11 @@ static Var *find_var(Token *tok) {
   return NULL;
 }
 
-static Var *new_lvar(char *name) {
+static Var *new_lvar(char *name, Type *ty) {
   Var *var = calloc(1, sizeof(Var));
   var->name = name;
   var->len = strlen(name);
+  var->ty = ty;
 
   VarList *vl = calloc(1, sizeof(VarList));
   vl->var = var;
@@ -64,27 +65,34 @@ Function *program(void) {
   return head.next;
 }
 
+static Type *basetype(void) {
+  expect("int");
+  Type *ty = int_type;
+  return ty;
+}
+
 static VarList *read_func_args(void) {
   if (consume(")")) return NULL;  // 引数なし
   // 引数を引数のリスト作成
   VarList *head = calloc(1, sizeof(VarList));
-  head->var = new_lvar(expect_ident());
+  head->var = new_lvar(expect_ident(), basetype());
   VarList *cur = head;
 
   while (consume(",")) {
     // locals に引数を追加する
     cur->next = calloc(1, sizeof(VarList));
-    cur->next->var = new_lvar(expect_ident());
+    cur->next->var = new_lvar(expect_ident(), basetype());
     cur = cur->next;
   }
   expect(")");
   return head;
 }
 
-// function = ident read-func-args "{" stmt* "}"
+// function = basetype ident read-func-args "{" stmt* "}"
 static Function *function(void) {
   locals = NULL;
 
+  basetype();
   Function *fn = calloc(1, sizeof(Function));
   fn->name = expect_ident();
   expect("(");
@@ -103,12 +111,38 @@ static Function *function(void) {
   return fn;
 }
 
+// declartion = basetype ident ("=" expr) ";"
+static Node *declaration(void) {
+  Node *node;
+  Type *ty = basetype();
+  Var *var = new_lvar(expect_ident(), ty);
+
+  if (consume(";")) {
+    node = calloc(1, sizeof(Node));
+    node->kind = ND_LVAR;
+    node->var = var;
+    return node;
+  }
+
+  expect("=");
+  // 左
+  Node *lhs = calloc(1, sizeof(Node));
+  lhs->kind = ND_LVAR;
+  lhs->var = var;
+  // 右
+  Node *rhs = expr();
+  node = new_node(ND_ASSIGN, lhs, rhs);
+  expect(";");
+  return node;
+}
+
 // stmt    = expr ";"
 //         | "return" expr ";"
 //         | "if" "(" expr ")" stmt ("else" stmt)?
 //         | "while" "(" expr ")" stmt
 //         | "for" "(" expr? ";" expr? ";" expr? ")" stmt
 //         | "{" stmt* "}"
+//         | declaration
 static Node *stmt(void) {
   Node *node;
   if (consume("return")) {
@@ -164,6 +198,9 @@ static Node *stmt(void) {
     node = calloc(1, sizeof(Node));
     node->kind = ND_BLOCK;
     node->body = head.next;
+    return node;
+  } else if (peek("int")) {
+    node = declaration();
     return node;
   } else {
     node = calloc(1, sizeof(Node));
@@ -246,8 +283,8 @@ static Node *mul(void) {
 
 // unary   = "+"? unary
 //         | "-"? unary
-//         | "*" unary
 //         | "&" unary
+//         | "*" unary
 static Node *unary(void) {
   if (consume("+"))
     return unary();
@@ -294,13 +331,7 @@ static Node *primary(void) {
     } else {
       // 変数の場合
       Var *var = find_var(tok);
-      if (!var) {
-        // 変数のリストの先頭に新しい変数を追加する
-        char *name = calloc(tok->len + 1, sizeof(char));
-        memcpy(name, tok->str, tok->len);
-        name[tok->len] = '\0';
-        var = new_lvar(name);
-      }
+      if (!var) error_at(token->str, "定義されてない識別子です");
       node = calloc(1, sizeof(Node));
       node->kind = ND_LVAR;
       node->var = var;

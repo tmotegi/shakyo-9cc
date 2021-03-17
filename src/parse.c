@@ -2,17 +2,20 @@
 
 static VarList *locals;
 
-Node *new_node(NodeKind kind, Node *lhs, Node *rhs) {
+Node *new_node(NodeKind kind) {
   Node *node = calloc(1, sizeof(Node));
   node->kind = kind;
+}
+
+Node *new_binary(NodeKind kind, Node *lhs, Node *rhs) {
+  Node *node = new_node(kind);
   node->lhs = lhs;
   node->rhs = rhs;
   return node;
 }
 
 Node *new_node_num(int val) {
-  Node *node = calloc(1, sizeof(Node));
-  node->kind = ND_NUM;
+  Node *node = new_node(ND_NUM);
   node->val = val;
   return node;
 }
@@ -121,20 +124,17 @@ static Node *declaration(void) {
   Var *var = new_lvar(expect_ident(), ty);
 
   if (consume(";")) {
-    node = calloc(1, sizeof(Node));
-    node->kind = ND_VAR;
+    node = new_node(ND_VAR);
     node->var = var;
     return node;
   }
 
+  // lhs = rhs ;
   expect("=");
-  // 左
-  Node *lhs = calloc(1, sizeof(Node));
-  lhs->kind = ND_VAR;
+  Node *lhs = new_node(ND_VAR);
   lhs->var = var;
-  // 右
   Node *rhs = expr();
-  node = new_node(ND_ASSIGN, lhs, rhs);
+  node = new_binary(ND_ASSIGN, lhs, rhs);
   expect(";");
   return node;
 }
@@ -149,12 +149,10 @@ static Node *declaration(void) {
 static Node *stmt(void) {
   Node *node;
   if (consume("return")) {
-    node = calloc(1, sizeof(Node));
-    node->kind = ND_RETURN;
+    node = new_node(ND_RETURN);
     node->lhs = expr();
   } else if (consume("if")) {
-    node = calloc(1, sizeof(Node));
-    node->kind = ND_IF;
+    node = new_node(ND_IF);
     expect("(");
     node->cond = expr();
     expect(")");
@@ -164,16 +162,14 @@ static Node *stmt(void) {
     }
     return node;
   } else if (consume("while")) {
-    node = calloc(1, sizeof(Node));
-    node->kind = ND_WHILE;
+    node = new_node(ND_WHILE);
     expect("(");
     node->cond = expr();
     expect(")");
     node->then = stmt();
     return node;
   } else if (consume("for")) {
-    node = calloc(1, sizeof(Node));
-    node->kind = ND_FOR;
+    node = new_node(ND_FOR);
     expect("(");
     if (!consume(";")) {
       node->init = expr();
@@ -198,16 +194,14 @@ static Node *stmt(void) {
       cur = cur->next;
     }
 
-    node = calloc(1, sizeof(Node));
-    node->kind = ND_BLOCK;
+    node = new_node(ND_BLOCK);
     node->body = head.next;
     return node;
   } else if (peek("int")) {
     node = declaration();
     return node;
   } else {
-    node = calloc(1, sizeof(Node));
-    node->kind = ND_EXPR_STMT;
+    node = new_node(ND_EXPR_STMT);
     node->lhs = expr();
   }
   expect(";");
@@ -220,7 +214,7 @@ static Node *expr(void) { return assign(); }
 // assign     = equality ("=" assign)?
 static Node *assign(void) {
   Node *node = equality();
-  if (consume("=")) node = new_node(ND_ASSIGN, node, assign());
+  if (consume("=")) node = new_binary(ND_ASSIGN, node, assign());
   return node;
 }
 
@@ -230,9 +224,9 @@ static Node *equality(void) {
 
   for (;;) {
     if (consume("=="))
-      node = new_node(ND_EQ, node, relational());
+      node = new_binary(ND_EQ, node, relational());
     else if (consume("!="))
-      node = new_node(ND_NE, node, relational());
+      node = new_binary(ND_NE, node, relational());
     else
       return node;
   }
@@ -244,13 +238,13 @@ static Node *relational(void) {
 
   for (;;) {
     if (consume("<"))
-      node = new_node(ND_LT, node, add());
+      node = new_binary(ND_LT, node, add());
     else if (consume("<="))
-      node = new_node(ND_LE, node, add());
+      node = new_binary(ND_LE, node, add());
     else if (consume(">"))
-      node = new_node(ND_LT, add(), node);
+      node = new_binary(ND_LT, add(), node);
     else if (consume(">="))
-      node = new_node(ND_LE, add(), node);
+      node = new_binary(ND_LE, add(), node);
     else
       return node;
   }
@@ -260,11 +254,11 @@ static Node *new_add(Node *lhs, Node *rhs) {
   add_type(lhs);
   add_type(rhs);
   if (is_integer(lhs->ty) && is_integer(rhs->ty))
-    return new_node(ND_ADD, lhs, rhs);  // ptr + num
+    return new_binary(ND_ADD, lhs, rhs);  // ptr + num
   else if (lhs->ty->ptr_to && is_integer(rhs->ty))
-    return new_node(ND_PTR_ADD, lhs, rhs);  // ptr + num
+    return new_binary(ND_PTR_ADD, lhs, rhs);  // ptr + num
   else if (is_integer(lhs->ty) && rhs->ty->ptr_to)
-    return new_node(ND_PTR_ADD, rhs, lhs);  // ptr + num
+    return new_binary(ND_PTR_ADD, rhs, lhs);  // ptr + num
   error_at(token->str, "定義されてない演算子です");
 }
 
@@ -272,11 +266,11 @@ static Node *new_sub(Node *lhs, Node *rhs) {
   add_type(lhs);
   add_type(rhs);
   if (is_integer(lhs->ty) && is_integer(rhs->ty))
-    return new_node(ND_SUB, lhs, rhs);  // num - num
+    return new_binary(ND_SUB, lhs, rhs);  // num - num
   else if (lhs->ty->ptr_to && is_integer(rhs->ty))
-    return new_node(ND_PTR_SUB, lhs, rhs);  // ptr - num
+    return new_binary(ND_PTR_SUB, lhs, rhs);  // ptr - num
   else if (lhs->ty->ptr_to && rhs->ty->ptr_to)
-    return new_node(ND_PTR_DIFF, lhs, rhs);  // ptr - ptr
+    return new_binary(ND_PTR_DIFF, lhs, rhs);  // ptr - ptr
   error_at(token->str, "定義されてない演算子です");
 }
 
@@ -300,9 +294,9 @@ static Node *mul(void) {
 
   for (;;) {
     if (consume("*"))
-      node = new_node(ND_MUL, node, unary());
+      node = new_binary(ND_MUL, node, unary());
     else if (consume("/"))
-      node = new_node(ND_DIV, node, unary());
+      node = new_binary(ND_DIV, node, unary());
     else
       return node;
   }
@@ -316,11 +310,11 @@ static Node *unary(void) {
   if (consume("+"))
     return unary();
   else if (consume("-"))
-    return new_node(ND_SUB, new_node_num(0), unary());
+    return new_binary(ND_SUB, new_node_num(0), unary());
   else if (consume("&"))
-    return new_node(ND_ADDR, unary(), NULL);
+    return new_binary(ND_ADDR, unary(), NULL);
   else if (consume("*"))
-    return new_node(ND_DEREF, unary(), NULL);
+    return new_binary(ND_DEREF, unary(), NULL);
   else
     return primary();
 }
@@ -348,8 +342,7 @@ static Node *primary(void) {
   if (tok) {
     if (consume("(")) {
       // 関数の場合
-      node = calloc(1, sizeof(Node));
-      node->kind = ND_FUNCALL;
+      node = new_node(ND_FUNCALL);
       node->funcname = calloc(tok->len + 1, sizeof(char));
       memcpy(node->funcname, tok->str, tok->len);
       node->funcname[tok->len] = '\0';

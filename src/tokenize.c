@@ -23,18 +23,29 @@ void error(char *fmt, ...) {
   exit(1);
 }
 
-// エラー箇所を報告する
-void error_at(char *loc, char *fmt, ...) {
-  va_list ap;
-  va_start(ap, fmt);
-
+// Reports an error location and exit.
+static void verror_at(char *loc, char *fmt, va_list ap) {
   int pos = loc - user_input;
   fprintf(stderr, "%s\n", user_input);
-  fprintf(stderr, "%*s", pos, " ");  // pos個の空白を出力
+  fprintf(stderr, "%*s", pos, "");  // print pos spaces.
   fprintf(stderr, "^ ");
   vfprintf(stderr, fmt, ap);
   fprintf(stderr, "\n");
   exit(1);
+}
+
+// エラー箇所を報告する
+void error_at(char *loc, char *fmt, ...) {
+  va_list ap;
+  va_start(ap, fmt);
+  verror_at(loc, fmt, ap);
+}
+
+// Reports an error location and exit.
+void error_tok(Token *tok, char *fmt, ...) {
+  va_list ap;
+  va_start(ap, fmt);
+  verror_at(tok->str, fmt, ap);
 }
 
 Token *peek(char *s) {
@@ -46,10 +57,11 @@ Token *peek(char *s) {
 
 // 次のトークンが期待している記号のときには、トークンを1つ読み進めて
 // 真を返す。それ以外の場合には偽を返す。
-bool consume(char *op) {
+Token *consume(char *op) {
   if (!peek(op)) return false;
+  Token *t = token;
   token = token->next;
-  return true;
+  return t;
 }
 
 Token *consume_ident(void) {

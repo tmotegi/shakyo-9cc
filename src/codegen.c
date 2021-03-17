@@ -22,7 +22,7 @@ void gen_lval(Node *node) {
       gen(node->lhs);
       return;
   }
-  error("代入の左辺値が変数ではありません");
+  error_tok(node->tok, "代入の左辺値が変数ではありません");
 }
 
 static void gen(Node *node) {

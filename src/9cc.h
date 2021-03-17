@@ -33,8 +33,9 @@ struct Token {
 char *strndup(char *s, size_t n);
 void error(char *fmt, ...);
 void error_at(char *loc, char *fmt, ...);
+void error_tok(Token *tok, char *fmt, ...);
 Token *peek(char *s);
-bool consume(char *op);
+Token *consume(char *op);
 Token *consume_ident(void);
 void expect(char *op);
 int expect_number(void);
@@ -99,6 +100,7 @@ typedef struct Node Node;
 struct Node {
   NodeKind kind;  // ノードの型
   Node *next;
+  Token *tok;
   Type *ty;
 
   Node *lhs;  // 左辺

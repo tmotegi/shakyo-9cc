@@ -132,15 +132,17 @@ Function *program(void);
 
 // type
 
-typedef enum { TY_INT } TypeKind;
+typedef enum { TY_INT, TY_PTR } TypeKind;
 
 struct Type {
   TypeKind kind;
+  Type *ptr_to;
 };
 
 extern Type *int_type;
 
 bool is_integer(Type *ty);
+Type *pointer_to(Type *ty);
 
 //
 // Code generator

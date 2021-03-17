@@ -68,6 +68,9 @@ Function *program(void) {
 static Type *basetype(void) {
   expect("int");
   Type *ty = int_type;
+  while (consume("*")) {
+    ty = pointer_to(ty);  // ポインタの場合は ptr_to にアドレスが入る
+  }
   return ty;
 }
 

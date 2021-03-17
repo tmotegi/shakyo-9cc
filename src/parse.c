@@ -343,9 +343,7 @@ static Node *primary(void) {
     if (consume("(")) {
       // 関数の場合
       node = new_node(ND_FUNCALL);
-      node->funcname = calloc(tok->len + 1, sizeof(char));
-      memcpy(node->funcname, tok->str, tok->len);
-      node->funcname[tok->len] = '\0';
+      node->funcname = strndup(tok->str, tok->len);
       node->args = func_args();
       return node;
     } else {

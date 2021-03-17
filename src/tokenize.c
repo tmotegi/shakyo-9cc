@@ -6,6 +6,13 @@ Token *token;
 // 入力プログラム
 char *user_input;
 
+char *strndup(char *s, size_t n) {
+  char *t = calloc(n + 1, sizeof(char));
+  memcpy(t, s, n);
+  t[n] = '\0';
+  return t;
+}
+
 // エラーを報告するための関数
 // printfと同じ引数を取る
 void error(char *fmt, ...) {
@@ -70,9 +77,7 @@ int expect_number(void) {
 
 char *expect_ident(void) {
   if (token->kind != TK_IDENT) error_at(token->str, "識別子ではありません");
-  char *name = calloc(token->len + 1, sizeof(char));
-  memcpy(name, token->str, token->len);
-  name[token->len] = '\0';
+  char *name = strndup(token->str, token->len);
   token = token->next;
   return name;
 }

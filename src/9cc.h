@@ -30,6 +30,7 @@ struct Token {
   int len;         // トークンの長さ
 };
 
+char *strndup(char *s, size_t n);
 void error(char *fmt, ...);
 void error_at(char *loc, char *fmt, ...);
 Token *peek(char *s);

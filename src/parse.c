@@ -244,15 +244,19 @@ static Node *mul(void) {
   }
 }
 
-// - -10 をパースするケースを考えると expr -> mul -> unary -> (- | unary) ->
-// (- | - | primary) = - - 10
-
-// unary   = ("+" | "-")? unary | primary
+// unary   = "+"? unary
+//         | "-"? unary
+//         | "*" unary
+//         | "&" unary
 static Node *unary(void) {
   if (consume("+"))
     return unary();
   else if (consume("-"))
     return new_node(ND_SUB, new_node_num(0), unary());
+  else if (consume("&"))
+    return new_node(ND_ADDR, unary(), NULL);
+  else if (consume("*"))
+    return new_node(ND_DEREF, unary(), NULL);
   else
     return primary();
 }

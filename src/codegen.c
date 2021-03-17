@@ -8,15 +8,24 @@ static char *funcname;
 // https://www.sigbus.info/compilerbook#%E6%95%B4%E6%95%B0%E3%83%AC%E3%82%B8%E3%82%B9%E3%82%BF%E3%81%AE%E4%B8%80%E8%A6%A7
 static char *argreg[] = {"rdi", "rsi", "rdx", "rcx", "r8", "r9"};
 
+static void gen(Node *node);
+
 // 変数のアドレスをスタックにプッシュする
 void gen_lval(Node *node) {
-  if (node->kind != ND_LVAR) error("代入の左辺値が変数ではありません");
-  printf("  mov rax, rbp\n");
-  printf("  sub rax, %d\n", node->var->offset);
-  printf("  push rax\n");
+  switch (node->kind) {
+    case ND_LVAR:
+      printf("  mov rax, rbp\n");
+      printf("  sub rax, %d\n", node->var->offset);
+      printf("  push rax\n");
+      return;
+    case ND_DEREF:
+      gen(node->lhs);
+      return;
+  }
+  error("代入の左辺値が変数ではありません");
 }
 
-void gen(Node *node) {
+static void gen(Node *node) {
   switch (node->kind) {
     case ND_NUM:
       printf("  push %d\n", node->val);
@@ -107,6 +116,15 @@ void gen(Node *node) {
       printf("  push rax\n");
       return;
     }
+    case ND_ADDR:
+      gen_lval(node->lhs);
+      return;
+    case ND_DEREF:
+      gen(node->lhs);
+      printf("  pop rax\n");
+      printf("  mov rax, [rax]\n");
+      printf("  push rax\n");
+      return;
   }
 
   gen(node->lhs);

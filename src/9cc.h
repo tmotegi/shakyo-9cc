@@ -77,7 +77,7 @@ typedef enum {
   ND_LT,         // <
   ND_LE,         // <=
   ND_ASSIGN,     // =
-  ND_LVAR,       // ローカル変数
+  ND_VAR,        // ローカル変数
   ND_RETURN,     // Return
   ND_EXPR_STMT,  // Expression statement
   ND_IF,         // If
@@ -87,6 +87,9 @@ typedef enum {
   ND_FUNCALL,    // Function call
   ND_ADDR,       // &
   ND_DEREF,      // *
+  ND_PTR_ADD,    // ptr + num
+  ND_PTR_SUB,    // ptr - num
+  ND_PTR_DIFF,   // ptr - ptr
 } NodeKind;
 
 typedef struct Node Node;
@@ -142,6 +145,7 @@ struct Type {
 extern Type *int_type;
 
 bool is_integer(Type *ty);
+void add_type(Node *node);
 Type *pointer_to(Type *ty);
 
 //

@@ -122,7 +122,7 @@ static Node *declaration(void) {
 
   if (consume(";")) {
     node = calloc(1, sizeof(Node));
-    node->kind = ND_LVAR;
+    node->kind = ND_VAR;
     node->var = var;
     return node;
   }
@@ -130,7 +130,7 @@ static Node *declaration(void) {
   expect("=");
   // 左
   Node *lhs = calloc(1, sizeof(Node));
-  lhs->kind = ND_LVAR;
+  lhs->kind = ND_VAR;
   lhs->var = var;
   // 右
   Node *rhs = expr();
@@ -256,15 +256,39 @@ static Node *relational(void) {
   }
 }
 
+static Node *new_add(Node *lhs, Node *rhs) {
+  add_type(lhs);
+  add_type(rhs);
+  if (is_integer(lhs->ty) && is_integer(rhs->ty))
+    return new_node(ND_ADD, lhs, rhs);  // ptr + num
+  else if (lhs->ty->ptr_to && is_integer(rhs->ty))
+    return new_node(ND_PTR_ADD, lhs, rhs);  // ptr + num
+  else if (is_integer(lhs->ty) && rhs->ty->ptr_to)
+    return new_node(ND_PTR_ADD, rhs, lhs);  // ptr + num
+  error_at(token->str, "定義されてない演算子です");
+}
+
+static Node *new_sub(Node *lhs, Node *rhs) {
+  add_type(lhs);
+  add_type(rhs);
+  if (is_integer(lhs->ty) && is_integer(rhs->ty))
+    return new_node(ND_SUB, lhs, rhs);  // num - num
+  else if (lhs->ty->ptr_to && is_integer(rhs->ty))
+    return new_node(ND_PTR_SUB, lhs, rhs);  // ptr - num
+  else if (lhs->ty->ptr_to && rhs->ty->ptr_to)
+    return new_node(ND_PTR_DIFF, lhs, rhs);  // ptr - ptr
+  error_at(token->str, "定義されてない演算子です");
+}
+
 // add        = mul ("+" mul | "-" mul)*
 static Node *add(void) {
   Node *node = mul();
 
   for (;;) {
     if (consume("+"))
-      node = new_node(ND_ADD, node, mul());
+      node = new_add(node, mul());
     else if (consume("-"))
-      node = new_node(ND_SUB, node, mul());
+      node = new_sub(node, mul());
     else
       return node;
   }
@@ -336,7 +360,7 @@ static Node *primary(void) {
       Var *var = find_var(tok);
       if (!var) error_at(token->str, "定義されてない識別子です");
       node = calloc(1, sizeof(Node));
-      node->kind = ND_LVAR;
+      node->kind = ND_VAR;
       node->var = var;
       return node;
     }
@@ -344,6 +368,8 @@ static Node *primary(void) {
     node = expr();
     expect(")");
     return node;
+  } else {
+    node = new_node_num(expect_number());
   }
-  return new_node_num(expect_number());
+  return node;
 }

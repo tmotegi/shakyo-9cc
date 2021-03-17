@@ -13,7 +13,7 @@ static void gen(Node *node);
 // 変数のアドレスをスタックにプッシュする
 void gen_lval(Node *node) {
   switch (node->kind) {
-    case ND_LVAR:
+    case ND_VAR:
       printf("  mov rax, rbp\n");
       printf("  sub rax, %d\n", node->var->offset);
       printf("  push rax\n");
@@ -34,7 +34,7 @@ static void gen(Node *node) {
       gen(node->lhs);
       printf("  add rsp, 8\n");
       return;
-    case ND_LVAR:  // 変数の値をスタックにプッシュする
+    case ND_VAR:  // 変数の値をスタックにプッシュする
       gen_lval(node);
       printf("  pop rax\n");
       printf("  mov rax, [rax]\n");
@@ -166,6 +166,20 @@ static void gen(Node *node) {
       printf("  cmp rax, rdi\n");
       printf("  setle al\n");
       printf("  movzb rax, al\n");
+      break;
+    case ND_PTR_ADD:
+      printf("  imul rdi, 8\n");
+      printf("  add rax, rdi\n");
+      break;
+    case ND_PTR_SUB:
+      printf("  imul rdi, 8\n");
+      printf("  sub rax, rdi\n");
+      break;
+    case ND_PTR_DIFF:
+      printf("  sub rax, rdi\n");
+      printf("  cqo\n");
+      printf("  mov rdi, 8\n");
+      printf("  idiv rdi\n");
       break;
   }
 

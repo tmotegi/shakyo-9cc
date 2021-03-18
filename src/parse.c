@@ -132,8 +132,7 @@ static Node *declaration(void) {
   Var *var = new_lvar(expect_ident(), ty);
 
   if (tok = consume(";")) {
-    node = new_node(ND_VAR, tok);
-    node->var = var;
+    node = new_var_node(var, tok);
     return node;
   }
 
@@ -268,6 +267,7 @@ static Node *relational(void) {
 static Node *new_add(Node *lhs, Node *rhs, Token *tok) {
   add_type(lhs);
   add_type(rhs);
+
   if (is_integer(lhs->ty) && is_integer(rhs->ty))
     return new_binary(ND_ADD, lhs, rhs, tok);  // ptr + num
   else if (lhs->ty->ptr_to && is_integer(rhs->ty))
@@ -280,6 +280,7 @@ static Node *new_add(Node *lhs, Node *rhs, Token *tok) {
 static Node *new_sub(Node *lhs, Node *rhs, Token *tok) {
   add_type(lhs);
   add_type(rhs);
+
   if (is_integer(lhs->ty) && is_integer(rhs->ty))
     return new_binary(ND_SUB, lhs, rhs, tok);  // num - num
   else if (lhs->ty->ptr_to && is_integer(rhs->ty))
@@ -322,6 +323,7 @@ static Node *mul(void) {
 //         | "-"? unary
 //         | "&" unary
 //         | "*" unary
+//         | "sizeof" unary
 static Node *unary(void) {
   Token *tok;
   if (tok = consume("+"))
@@ -332,7 +334,15 @@ static Node *unary(void) {
     return new_binary(ND_ADDR, unary(), NULL, tok);
   else if (tok = consume("*"))
     return new_binary(ND_DEREF, unary(), NULL, tok);
-  else
+  else if (tok = consume("sizeof")) {
+    Node *node = unary();
+    add_type(node);
+    if (is_integer(node->ty)) {
+      return new_num(4, tok);
+    } else {
+      return new_num(8, tok);
+    }
+  } else
     return primary();
 }
 

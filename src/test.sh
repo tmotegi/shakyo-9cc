@@ -101,4 +101,8 @@ assert 7 'int main() { int x=3; int y=5; *(&y-1)=7; return x; }'
 assert 3 'int main() { int x; int *y; y = &x; *y = 3; return x;} '
 assert 2 'int main() { int x=3; return (&x+2)-&x; }'
 
+assert 4 'int main() { int x; return sizeof(x); }'
+assert 4 'int main() { int x; return sizeof x; }'
+assert 8 'int main() { int *x; return sizeof(x); }'
+
 echo OK

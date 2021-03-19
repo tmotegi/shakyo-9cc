@@ -185,8 +185,7 @@ static Node *stmt2(void) {
   Token *tok;
 
   if (tok = consume("return")) {
-    node = new_node(ND_RETURN, tok);
-    node->lhs = expr();
+    node = new_binary(ND_RETURN, expr(), NULL, tok);
     expect(";");
     return node;
   } else if (tok = consume("if")) {
@@ -240,8 +239,7 @@ static Node *stmt2(void) {
     return node;
   }
   tok = token;
-  node = new_node(ND_EXPR_STMT, tok);
-  node->lhs = expr();
+  node = new_binary(ND_EXPR_STMT, expr(), NULL, tok);
   expect(";");
   return node;
 }

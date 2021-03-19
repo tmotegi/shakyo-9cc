@@ -61,6 +61,7 @@ static Node *relational(void);
 static Node *add(void);
 static Node *mul(void);
 static Node *unary(void);
+static Node *suffix(void);
 static Node *primary(void);
 
 // program    = function*
@@ -143,7 +144,7 @@ static Function *function(void) {
   return fn;
 }
 
-// declartion = basetype ident read_type_suffix? ("=" expr) ";"
+// declartion = basetype ident (read_type_suffix)* ("=" expr) ";"
 static Node *declaration(void) {
   Node *node;
   Token *tok = token;
@@ -345,11 +346,9 @@ static Node *mul(void) {
   }
 }
 
-// unary   = "+"? unary
-//         | "-"? unary
-//         | "&" unary
-//         | "*" unary
+// unary   = ("+" | "-" | "&" | "*")? unary
 //         | "sizeof" unary
+//         | suffix
 static Node *unary(void) {
   Token *tok;
   if (tok = consume("+"))
@@ -368,8 +367,21 @@ static Node *unary(void) {
     } else {
       return new_num(8, tok);
     }
-  } else
-    return primary();
+  }
+  return suffix();
+}
+
+// suffix = primary ("[" expr "]")*
+static Node *suffix(void) {
+  Node *node = primary();
+  Token *tok;
+  while (tok = consume("[")) {
+    // x[y] = *(x + y)
+    Node *exp = new_add(node, expr(), tok);
+    expect("]");
+    node = new_binary(ND_DEREF, exp, NULL, tok);
+  }
+  return node;
 }
 
 // func-args = "(" (expr ("," expr)*)? ")"

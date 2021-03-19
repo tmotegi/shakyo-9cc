@@ -187,6 +187,8 @@ static Node *stmt2(void) {
   if (tok = consume("return")) {
     node = new_node(ND_RETURN, tok);
     node->lhs = expr();
+    expect(";");
+    return node;
   } else if (tok = consume("if")) {
     node = new_node(ND_IF, tok);
     expect("(");
@@ -236,11 +238,10 @@ static Node *stmt2(void) {
   } else if (peek("int")) {
     node = declaration();
     return node;
-  } else {
-    tok = token;
-    node = new_node(ND_EXPR_STMT, tok);
-    node->lhs = expr();
   }
+  tok = token;
+  node = new_node(ND_EXPR_STMT, tok);
+  node->lhs = expr();
   expect(";");
   return node;
 }

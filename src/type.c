@@ -1,6 +1,6 @@
 #include "9cc.h"
 
-Type *int_type = &(Type){TY_INT};
+Type *int_type = &(Type){TY_INT, 8};
 
 bool is_integer(Type *ty) { return ty->kind == TY_INT; }
 
@@ -8,7 +8,16 @@ Type *pointer_to(Type *ptr_to) {
   Type *ty = calloc(1, sizeof(Type));
   ty->kind = TY_PTR;
   ty->ptr_to = ptr_to;
+  ty->size = 8;
   return ty;
+}
+
+Type *array_of(Type *ptr_to, int len) {
+  Type *ty = calloc(1, sizeof(Type));
+  ty->kind = TY_ARRAY;
+  ty->ptr_to = ptr_to;
+  ty->array_size = len;
+  ty->size = ptr_to->size * len;
 }
 
 void add_type(Node *node) {
@@ -55,5 +64,6 @@ void add_type(Node *node) {
       return;
     case ND_VAR:
       node->ty = node->var->ty;
+      return;
   }
 }

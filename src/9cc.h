@@ -135,20 +135,24 @@ struct Function {
 
 Function *program(void);
 
+//
 // type
-
-typedef enum { TY_INT, TY_PTR } TypeKind;
+//
+typedef enum { TY_INT, TY_PTR, TY_ARRAY } TypeKind;
 
 struct Type {
   TypeKind kind;
+  size_t size;
   Type *ptr_to;
+  size_t array_size;
 };
 
 extern Type *int_type;
 
 bool is_integer(Type *ty);
 void add_type(Node *node);
-Type *pointer_to(Type *ty);
+Type *pointer_to(Type *ptr_to);
+Type *array_of(Type *ptr_to, int len);
 
 //
 // Code generator

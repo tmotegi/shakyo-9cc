@@ -11,7 +11,7 @@ static char *argreg[] = {"rdi", "rsi", "rdx", "rcx", "r8", "r9"};
 static void gen(Node *node);
 
 // 変数のアドレスをスタックにプッシュする
-void gen_lval(Node *node) {
+void gen_addr(Node *node) {
   switch (node->kind) {
     case ND_VAR:
       printf("  mov rax, rbp\n");
@@ -22,7 +22,15 @@ void gen_lval(Node *node) {
       gen(node->lhs);
       return;
   }
+
   error_tok(node->tok, "代入の左辺値が変数ではありません");
+}
+
+static void gen_lval(Node *node) {
+  if (node->ty->kind == TY_ARRAY)
+    error_tok(node->tok,
+              "not an lvalue");  // 配列のアドレスはスタックに積まない
+  gen_addr(node);
 }
 
 static void gen(Node *node) {
@@ -35,10 +43,12 @@ static void gen(Node *node) {
       printf("  add rsp, 8\n");
       return;
     case ND_VAR:  // 変数の値をスタックにプッシュする
-      gen_lval(node);
-      printf("  pop rax\n");
-      printf("  mov rax, [rax]\n");
-      printf("  push rax\n");
+      gen_addr(node);
+      if (node->ty->kind != TY_ARRAY) {
+        printf("  pop rax\n");
+        printf("  mov rax, [rax]\n");
+        printf("  push rax\n");
+      }
       return;
     case ND_ASSIGN:
       gen_lval(node->lhs);  // 左辺値のアドレスをスタックにプッシュ
@@ -117,13 +127,16 @@ static void gen(Node *node) {
       return;
     }
     case ND_ADDR:
-      gen_lval(node->lhs);
+      gen_addr(node->lhs);
       return;
     case ND_DEREF:
       gen(node->lhs);
-      printf("  pop rax\n");
-      printf("  mov rax, [rax]\n");
-      printf("  push rax\n");
+      if (node->ty->kind != TY_ARRAY) {
+        printf("  pop rax\n");
+        printf("  mov rax, [rax]\n");
+        printf("  push rax\n");
+      }
+
       return;
   }
 
@@ -168,17 +181,19 @@ static void gen(Node *node) {
       printf("  movzb rax, al\n");
       break;
     case ND_PTR_ADD:
-      printf("  imul rdi, 8\n");
+      printf("  imul rdi, %ld\n", node->ty->ptr_to->size);
       printf("  add rax, rdi\n");
       break;
     case ND_PTR_SUB:
-      printf("  imul rdi, 8\n");
+      printf("  imul rdi, %ld\n", node->ty->ptr_to->size);
       printf("  sub rax, rdi\n");
       break;
     case ND_PTR_DIFF:
       printf("  sub rax, rdi\n");
       printf("  cqo\n");
-      printf("  mov rdi, 8\n");
+      printf("  mov rdi, %ld\n",
+             node->lhs->ty->ptr_to->size);  // node->ty->ptr_to は null
+                                            // lhs のサイズに合わせる
       printf("  idiv rdi\n");
       break;
   }

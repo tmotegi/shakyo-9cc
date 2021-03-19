@@ -53,6 +53,7 @@ static Var *new_lvar(char *name, Type *ty) {
 
 static Function *function(void);
 static Node *stmt(void);
+static Node *stmt2(void);
 static Node *expr(void);
 static Node *assign(void);
 static Node *equality(void);
@@ -84,19 +85,37 @@ static Type *basetype(void) {
   return ty;
 }
 
+static Type *read_type_suffix(Type *base) {
+  // 配列定義を処理
+  if (!consume("[")) return base;
+  int sz = expect_number();
+  expect("]");
+  return array_of(base, sz);
+}
+
+static VarList *read_func_arg(void) {
+  Type *ty = basetype();
+  char *name = expect_ident();
+  ty = read_type_suffix(ty);
+
+  VarList *vl = calloc(1, sizeof(VarList));
+  vl->var = new_lvar(name, ty);
+  return vl;
+}
+
 static VarList *read_func_args(void) {
   if (consume(")")) return NULL;  // 引数なし
-  // 引数を引数のリスト作成
-  VarList *head = calloc(1, sizeof(VarList));
-  head->var = new_lvar(expect_ident(), basetype());
+
+  // 引数のリスト作成
+  VarList *head = read_func_arg();
   VarList *cur = head;
 
   while (consume(",")) {
     // locals に引数を追加する
-    cur->next = calloc(1, sizeof(VarList));
-    cur->next->var = new_lvar(expect_ident(), basetype());
+    cur->next = read_func_arg();
     cur = cur->next;
   }
+
   expect(")");
   return head;
 }
@@ -124,12 +143,14 @@ static Function *function(void) {
   return fn;
 }
 
-// declartion = basetype ident ("=" expr) ";"
+// declartion = basetype ident read_type_suffix? ("=" expr) ";"
 static Node *declaration(void) {
   Node *node;
   Token *tok = token;
   Type *ty = basetype();
-  Var *var = new_lvar(expect_ident(), ty);
+  char *name = expect_ident();
+  ty = read_type_suffix(ty);
+  Var *var = new_lvar(name, ty);
 
   if (tok = consume(";")) {
     node = new_var_node(var, tok);
@@ -146,6 +167,12 @@ static Node *declaration(void) {
   return node;
 }
 
+static Node *stmt(void) {
+  Node *node = stmt2();
+  add_type(node);
+  return node;
+}
+
 // stmt    = expr ";"
 //         | "return" expr ";"
 //         | "if" "(" expr ")" stmt ("else" stmt)?
@@ -153,7 +180,7 @@ static Node *declaration(void) {
 //         | "for" "(" expr? ";" expr? ";" expr? ")" stmt
 //         | "{" stmt* "}"
 //         | declaration
-static Node *stmt(void) {
+static Node *stmt2(void) {
   Node *node;
   Token *tok;
 

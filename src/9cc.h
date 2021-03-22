@@ -15,6 +15,7 @@ typedef enum {
   TK_RESERVED,  // 記号
   TK_IDENT,     // 識別子
   TK_NUM,       // 整数トークン
+  TK_STR,       // string
   TK_EOF,       // 入力の終わりを表すトークン
 } TokenKind;
 
@@ -27,6 +28,10 @@ struct Token {
   int val;         // kindがTK_NUMの場合、その数値
   char *str;       // トークン文字列
   int len;         // トークンの長さ
+
+  // for string
+  char *contents;
+  int cont_len;
 };
 
 char *strndup(char *s, size_t n);
@@ -58,6 +63,10 @@ struct Var {
   int len;
   int offset;
   bool is_local;
+
+  // for string
+  char *contents;
+  int cont_len;
 };
 
 typedef struct VarList VarList;

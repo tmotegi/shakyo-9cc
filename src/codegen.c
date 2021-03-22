@@ -219,7 +219,10 @@ void codegen(Program *prog) {
   printf(".data\n");
   for (VarList *vl = prog->globals; vl; vl = vl->next) {
     printf("%s:\n", vl->var->name);
-    printf("  .zero %ld\n", vl->var->ty->size);
+    if (!vl->var->contents)
+      printf("  .zero %ld\n", vl->var->ty->size);
+    else
+      printf("  .string \"%s\"\n", vl->var->contents);
   }
   printf(".text\n");
   for (Function *fn = prog->fns; fn; fn = fn->next) {

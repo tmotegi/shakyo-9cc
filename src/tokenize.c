@@ -165,6 +165,17 @@ Token *tokenize() {
       continue;
     }
 
+    // 文字列
+    if (*p == '"') {
+      char *q = p++;
+      while (*p != '"') p++;
+      p++;  // '"' をスキップ
+      cur = new_token(TK_STR, cur, q, p - q);
+      cur->contents = strndup(q + 1, p - q - 2);  // ""の中だけ取る
+      cur->cont_len = p - q - 1;
+      continue;
+    }
+
     if (ispunct(*p)) {
       cur = new_token(TK_RESERVED, cur, p++, 1);
       continue;

@@ -74,6 +74,13 @@ static Var *new_gvar(char *name, Type *ty) {
   return var;
 }
 
+static char *new_label(void) {
+  static int cnt = 0;
+  char buf[20];
+  sprintf(buf, ".L.data.%d", cnt++);
+  return strndup(buf, 20);
+}
+
 static Type *basetype(void);
 static Type *gloval_var(void);
 static Function *function(void);
@@ -455,6 +462,7 @@ static Node *func_args(void) {
 // primary = num
 //         | ident func-args?
 //         | "(" expr ")"
+//         | str
 static Node *primary(void) {
   Node *node;
   Token *tok;
@@ -475,9 +483,18 @@ static Node *primary(void) {
     node = expr();
     expect(")");
     return node;
-  } else {
-    tok = token;
-    return new_num(expect_number(), tok);
   }
-  return node;
+
+  tok = token;
+  if (tok->kind == TK_STR) {
+    token = token->next;
+    Type *ty = array_of(char_type, tok->cont_len);
+    Var *var = new_gvar(new_label(), ty);
+    var->contents = tok->contents;
+    var->cont_len = tok->cont_len;
+    return new_var_node(var, tok);
+  }
+
+  if (tok->kind != TK_NUM) error_tok(tok, "expected expression");
+  return new_num(expect_number(), tok);
 }

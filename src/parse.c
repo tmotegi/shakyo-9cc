@@ -1,10 +1,19 @@
 #include "9cc.h"
 
 static VarList *locals;
+static VarList *globals;
 
 // 変数を名前で検索する。見つからなかった場合はNULLを返す。
 static Var *find_var(Token *tok) {
+  // ローカル変数から探す
   for (VarList *vl = locals; vl; vl = vl->next) {
+    Var *var = vl->var;
+    if (strlen(var->name) == tok->len &&
+        memcmp(var->name, tok->str, var->len) == 0)
+      return var;
+  }
+
+  for (VarList *vl = globals; vl; vl = vl->next) {
     Var *var = vl->var;
     if (strlen(var->name) == tok->len &&
         memcmp(var->name, tok->str, var->len) == 0)
@@ -43,6 +52,7 @@ static Var *new_lvar(char *name, Type *ty) {
   var->name = name;
   var->len = strlen(name);
   var->ty = ty;
+  var->is_local = true;
 
   VarList *vl = calloc(1, sizeof(VarList));
   vl->var = var;
@@ -51,6 +61,21 @@ static Var *new_lvar(char *name, Type *ty) {
   return var;
 }
 
+static Var *new_gvar(char *name, Type *ty) {
+  Var *var = calloc(1, sizeof(Var));
+  var->name = name;
+  var->len = strlen(name);
+  var->ty = ty;
+
+  VarList *vl = calloc(1, sizeof(VarList));
+  vl->var = var;
+  vl->next = globals;
+  globals = vl;
+  return var;
+}
+
+static Type *basetype(void);
+static Type *gloval_var(void);
 static Function *function(void);
 static Node *stmt(void);
 static Node *stmt2(void);
@@ -64,17 +89,33 @@ static Node *unary(void);
 static Node *suffix(void);
 static Node *primary(void);
 
-// program    = function*
-Function *program(void) {
+static bool is_function(void) {
+  Token *tok = token;
+  basetype();
+  bool ret = consume_ident() && consume("(");
+  token = tok;  // consume したトークンを戻す
+  return ret;
+}
+
+// program    = (global_var | function)*
+Program *program(void) {
   Function head = {};
   Function *cur = &head;
+  globals = NULL;
 
   while (!at_eof()) {
-    cur->next = function();
-    cur = cur->next;
+    if (is_function()) {
+      cur->next = function();
+      cur = cur->next;
+    } else {
+      gloval_var();
+    }
   }
 
-  return head.next;
+  Program *prog = calloc(1, sizeof(Program));
+  prog->fns = head.next;
+  prog->globals = globals;
+  return prog;
 }
 
 static Type *basetype(void) {
@@ -120,6 +161,14 @@ static VarList *read_func_args(void) {
 
   expect(")");
   return head;
+}
+
+static Type *gloval_var(void) {
+  Type *ty = basetype();
+  char *name = expect_ident();
+  ty = read_type_suffix(ty);
+  expect(";");
+  new_gvar(name, ty);
 }
 
 // function = basetype ident read-func-args "{" stmt* "}"
@@ -363,11 +412,7 @@ static Node *unary(void) {
   else if (tok = consume("sizeof")) {
     Node *node = unary();
     add_type(node);
-    if (is_integer(node->ty)) {
-      return new_num(4, tok);
-    } else {
-      return new_num(8, tok);
-    }
+    return new_num(node->ty->size, tok);
   }
   return suffix();
 }

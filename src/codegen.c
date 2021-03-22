@@ -14,9 +14,13 @@ static void gen(Node *node);
 void gen_addr(Node *node) {
   switch (node->kind) {
     case ND_VAR:
-      printf("  mov rax, rbp\n");
-      printf("  sub rax, %d\n", node->var->offset);
-      printf("  push rax\n");
+      if (node->var->is_local) {
+        printf("  mov rax, rbp\n");
+        printf("  sub rax, %d\n", node->var->offset);
+        printf("  push rax\n");
+      } else {
+        printf("  push offset %s\n", node->var->name);
+      }
       return;
     case ND_DEREF:
       gen(node->lhs);
@@ -201,9 +205,15 @@ static void gen(Node *node) {
   printf("  push rax\n");
 }
 
-void codegen(Function *prog) {
+void codegen(Program *prog) {
   printf(".intel_syntax noprefix\n");
-  for (Function *fn = prog; fn; fn = fn->next) {
+  printf(".data\n");
+  for (VarList *vl = prog->globals; vl; vl = vl->next) {
+    printf("%s:\n", vl->var->name);
+    printf("  .zero %ld\n", vl->var->ty->size);
+  }
+  printf(".text\n");
+  for (Function *fn = prog->fns; fn; fn = fn->next) {
     // アセンブリの前半部分を出力
     printf(".global %s\n", fn->name);
     printf("%s:\n", fn->name);

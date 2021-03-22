@@ -57,6 +57,7 @@ struct Var {
   Type *ty;
   int len;
   int offset;
+  bool is_local;
 };
 
 typedef struct VarList VarList;
@@ -133,7 +134,12 @@ struct Function {
   int stack_size;
 };
 
-Function *program(void);
+typedef struct {
+  VarList *globals;
+  Function *fns;
+} Program;
+
+Program *program(void);
 
 //
 // type
@@ -157,4 +163,4 @@ Type *array_of(Type *ptr_to, int len);
 //
 // Code generator
 //
-void codegen(Function *prog);
+void codegen(Program *prog);

@@ -6,7 +6,8 @@ static char *funcname;
 
 // レジスタ
 // https://www.sigbus.info/compilerbook#%E6%95%B4%E6%95%B0%E3%83%AC%E3%82%B8%E3%82%B9%E3%82%BF%E3%81%AE%E4%B8%80%E8%A6%A7
-static char *argreg[] = {"rdi", "rsi", "rdx", "rcx", "r8", "r9"};
+static char *argreg1[] = {"dil", "sil", "dl", "cl", "r8b", "r9b"};
+static char *argreg8[] = {"rdi", "rsi", "rdx", "rcx", "r8", "r9"};
 
 static void gen(Node *node);
 
@@ -37,6 +38,26 @@ static void gen_lval(Node *node) {
   gen_addr(node);
 }
 
+static void load(Type *ty) {
+  printf("  pop rax\n");
+  if (ty->size == 1)
+    printf("  movsx rax, byte ptr [rax]\n");
+  else
+    printf("  mov rax, [rax]\n");
+  printf("  push rax\n");
+}
+
+static void store(Type *ty) {
+  printf("  pop rdi\n");
+  printf("  pop rax\n");
+  if (ty->size == 1)
+    printf("  mov [rax], dil\n");  // rdi の 下位8ビット
+  else
+    printf("  mov [rax], rdi\n");  // 左辺値に右辺値をストア
+
+  printf("  push rdi\n");
+}
+
 static void gen(Node *node) {
   switch (node->kind) {
     case ND_NUM:
@@ -48,19 +69,12 @@ static void gen(Node *node) {
       return;
     case ND_VAR:  // 変数の値をスタックにプッシュする
       gen_addr(node);
-      if (node->ty->kind != TY_ARRAY) {
-        printf("  pop rax\n");
-        printf("  mov rax, [rax]\n");
-        printf("  push rax\n");
-      }
+      if (node->ty->kind != TY_ARRAY) load(node->ty);
       return;
     case ND_ASSIGN:
       gen_lval(node->lhs);  // 左辺値のアドレスをスタックにプッシュ
       gen(node->rhs);       // 右辺値の値をスタックにプッシュ
-      printf("  pop rdi\n");
-      printf("  pop rax\n");
-      printf("  mov [rax], rdi\n");  // 左辺値に右辺値をストア
-      printf("  push rdi\n");
+      store(node->ty);
       return;
     case ND_RETURN:  // returnの返り値の式を評価して，スタックトップをRAXに設定して関数から戻る
       gen(node->lhs);
@@ -125,7 +139,7 @@ static void gen(Node *node) {
       for (Node *arg = node->args; arg; arg = arg->next, reg_counter++)
         gen(arg);
       for (int i = reg_counter - 1; i >= 0; i--)
-        printf("  pop %s\n", argreg[i]);
+        printf("  pop %s\n", argreg8[i]);
       printf("  call %s\n", node->funcname);
       printf("  push rax\n");
       return;
@@ -135,12 +149,7 @@ static void gen(Node *node) {
       return;
     case ND_DEREF:
       gen(node->lhs);
-      if (node->ty->kind != TY_ARRAY) {
-        printf("  pop rax\n");
-        printf("  mov rax, [rax]\n");
-        printf("  push rax\n");
-      }
-
+      if (node->ty->kind != TY_ARRAY) load(node->ty);
       return;
   }
 
@@ -227,7 +236,10 @@ void codegen(Program *prog) {
     // 引数の値をローカル変数の領域に書き込む
     int i = 0;
     for (VarList *vl = fn->args; vl; vl = vl->next)
-      printf("  mov [rbp-%d], %s\n", vl->var->offset, argreg[i++]);
+      if (vl->var->ty->size == 1)
+        printf("  mov [rbp-%d], %s\n", vl->var->offset, argreg1[i++]);
+      else
+        printf("  mov [rbp-%d], %s\n", vl->var->offset, argreg8[i++]);
 
     // 先頭の式から順にコード生成
     for (Node *node = fn->node; node; node = node->next) gen(node);

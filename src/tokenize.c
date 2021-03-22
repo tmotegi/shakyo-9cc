@@ -106,13 +106,19 @@ Token *new_token(TokenKind kind, Token *cur, char *str, int len) {
   return tok;
 }
 
+static bool is_alpha(char c) { return isalpha(c) || c == '_'; };
+
+static bool is_alnum(char c) { return isalnum(c) || c == '_'; }
+
 static bool startswith(char *p, char *q) {
   return strncmp(p, q, strlen(q)) == 0;
 }
 
 static char *starts_with_reserved(char *p) {
   // Keyword
-  static char *kw[] = {"return", "if", "else", "while", "for", "int", "sizeof"};
+  static char *kw[] = {
+      "return", "if", "else", "while", "for", "char", "int", "sizeof",
+  };
 
   for (int i = 0; i < sizeof(kw) / sizeof(*kw); i++) {
     int len = strlen(kw[i]);
@@ -151,6 +157,14 @@ Token *tokenize() {
       continue;
     }
 
+    // 変数名を獲得する
+    if (is_alpha(*p)) {
+      char *q = p++;
+      while (is_alnum(*p)) p++;
+      cur = new_token(TK_IDENT, cur, q, p - q);
+      continue;
+    }
+
     if (ispunct(*p)) {
       cur = new_token(TK_RESERVED, cur, p++, 1);
       continue;
@@ -158,15 +172,9 @@ Token *tokenize() {
 
     if (isdigit(*p)) {
       cur = new_token(TK_NUM, cur, p, 0);
-      cur->val = strtol(p, &p, 10);
-      continue;
-    }
-
-    // 変数名を獲得する
-    if (isalnum(*p)) {
       char *q = p;
-      while (isalnum(*p)) p++;
-      cur = new_token(TK_IDENT, cur, q, p - q);
+      cur->val = strtol(p, &p, 10);
+      cur->len = p - q;
       continue;
     }
 

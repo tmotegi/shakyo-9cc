@@ -144,7 +144,12 @@ Program *program(void);
 //
 // type
 //
-typedef enum { TY_INT, TY_PTR, TY_ARRAY } TypeKind;
+typedef enum {
+  TY_CHAR,
+  TY_INT,
+  TY_PTR,
+  TY_ARRAY,
+} TypeKind;
 
 struct Type {
   TypeKind kind;
@@ -154,6 +159,7 @@ struct Type {
 };
 
 extern Type *int_type;
+extern Type *char_type;
 
 bool is_integer(Type *ty);
 void add_type(Node *node);

@@ -1,8 +1,9 @@
 #include "9cc.h"
 
+Type *char_type = &(Type){TY_CHAR, 1};
 Type *int_type = &(Type){TY_INT, 8};
 
-bool is_integer(Type *ty) { return ty->kind == TY_INT; }
+bool is_integer(Type *ty) { return ty->kind == TY_CHAR || ty->kind == TY_INT; }
 
 Type *pointer_to(Type *ptr_to) {
   Type *ty = calloc(1, sizeof(Type));

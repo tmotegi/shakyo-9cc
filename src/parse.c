@@ -118,9 +118,15 @@ Program *program(void) {
   return prog;
 }
 
+// basetype = ("char" | "int") "*"*
 static Type *basetype(void) {
-  expect("int");
-  Type *ty = int_type;
+  Type *ty;
+  if (consume("char")) {
+    ty = char_type;
+  } else if (consume("int")) {
+    ty = int_type;
+  }
+
   while (consume("*")) {
     ty = pointer_to(ty);  // ポインタの場合は ptr_to にアドレスが入る
   }
@@ -224,6 +230,8 @@ static Node *stmt(void) {
   return node;
 }
 
+static bool is_typename(void) { return peek("char") || peek("int"); }
+
 // stmt    = expr ";"
 //         | "return" expr ";"
 //         | "if" "(" expr ")" stmt ("else" stmt)?
@@ -285,7 +293,7 @@ static Node *stmt2(void) {
     node = new_node(ND_BLOCK, tok);
     node->body = head.next;
     return node;
-  } else if (peek("int")) {
+  } else if (is_typename()) {
     node = declaration();
     return node;
   }

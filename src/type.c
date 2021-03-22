@@ -54,13 +54,17 @@ void add_type(Node *node) {
       node->ty = node->lhs->ty;
       return;
     case ND_ADDR:
-      node->ty = pointer_to(node->lhs->ty);
+      if (node->lhs->ty->kind == TY_ARRAY)
+        node->ty = pointer_to(node->lhs->ty->ptr_to);
+      else
+        node->ty = pointer_to(node->lhs->ty);
       return;
     case ND_DEREF:
-      if (node->lhs->ty->kind == TY_PTR)
-        node->ty = node->lhs->ty->ptr_to;
-      else
-        node->ty = int_type;
+      if (!node->lhs->ty->ptr_to)
+        error_tok(node->tok, "invalid pointer dereference");
+      node->ty =
+          node->lhs->ty
+              ->ptr_to;  // ND_DEREF の場合は ptr_to の先の Type を設定する
       return;
     case ND_VAR:
       node->ty = node->var->ty;

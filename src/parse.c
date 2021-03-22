@@ -91,6 +91,7 @@ static Type *read_type_suffix(Type *base) {
   if (!consume("[")) return base;
   int sz = expect_number();
   expect("]");
+  base = read_type_suffix(base);  // 再帰呼び出し (array[1][2][3])
   return array_of(base, sz);
 }
 

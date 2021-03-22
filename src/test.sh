@@ -15,7 +15,7 @@ assert() {
   input="$2"
 
   ./9cc "$input" > tmp.s
-  cc -static -o tmp tmp.s tmp2.o
+  cc -no-pie -static -o tmp tmp.s tmp2.o
   ./tmp
   actual="$?"
 
@@ -101,8 +101,8 @@ assert 7 'int main() { int x=3; int y=5; *(&y-1)=7; return x; }'
 assert 3 'int main() { int x; int *y; y = &x; *y = 3; return x;} '
 assert 2 'int main() { int x=3; return (&x+2)-&x; }'
 
-assert 4 'int main() { int x; return sizeof(x); }'
-assert 4 'int main() { int x; return sizeof x; }'
+assert 8 'int main() { int x; return sizeof(x); }'
+assert 8 'int main() { int x; return sizeof x; }'
 assert 8 'int main() { int *x; return sizeof(x); }'
 
 assert 3 'int main() { int x[2]; int *y=&x; *y=3; return *x; }'
@@ -132,5 +132,15 @@ assert 3 'int main() { int x[2][3]; int *y=x; y[3]=3; return x[1][0]; }'
 assert 4 'int main() { int x[2][3]; int *y=x; y[4]=4; return x[1][1]; }'
 assert 5 'int main() { int x[2][3]; int *y=x; y[5]=5; return x[1][2]; }'
 assert 6 'int main() { int x[2][3]; int *y=x; y[6]=6; return x[2][0]; }'
+
+assert 0 'int x; int main() { return x; }'
+assert 3 'int x; int main() { x=3; return x; }'
+assert 0 'int x[4]; int main() { x[0]=0; x[1]=1; x[2]=2; x[3]=3; return x[0]; }'
+assert 1 'int x[4]; int main() { x[0]=0; x[1]=1; x[2]=2; x[3]=3; return x[1]; }'
+assert 2 'int x[4]; int main() { x[0]=0; x[1]=1; x[2]=2; x[3]=3; return x[2]; }'
+assert 3 'int x[4]; int main() { x[0]=0; x[1]=1; x[2]=2; x[3]=3; return x[3]; }'
+
+assert 8 'int x; int main() { return sizeof(x); }'
+assert 32 'int x[4]; int main() { return sizeof(x); }'
 
 echo OK

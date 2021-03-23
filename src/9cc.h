@@ -94,6 +94,7 @@ typedef enum {
   ND_VAR,        // ローカル変数
   ND_RETURN,     // Return
   ND_EXPR_STMT,  // Expression statement
+  ND_STMT_EXPR,
   ND_IF,         // If
   ND_WHILE,      // While
   ND_FOR,        // For

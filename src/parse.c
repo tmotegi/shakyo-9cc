@@ -445,6 +445,26 @@ static Node *suffix(void) {
   return node;
 }
 
+// stmt-expr = "(" "{" stmt stmt* "}" ")"
+//
+// Statement expression is a GNU C extension.
+static Node *stmt_expr(Token *tok) {
+  Node *node = new_node(ND_STMT_EXPR, tok);
+  node->body = stmt();
+  Node *cur = node->body;
+
+  while (!consume("}")) {
+    cur->next = stmt();
+    cur = cur->next;
+  }
+  expect(")");
+
+  if (cur->kind != ND_EXPR_STMT)
+    error_tok(cur->tok, "stmt expr returning void is not supported");
+  memcpy(cur, cur->lhs, sizeof(Node));
+  return node;
+}
+
 // func-args = "(" (expr ("," expr)*)? ")"
 static Node *func_args(void) {
   if (consume(")")) return NULL;  // 引数なし
@@ -459,14 +479,20 @@ static Node *func_args(void) {
   return head;
 }
 
-// primary = num
-//         | ident func-args?
+// primary = "(" "{" stmt-expr-tail
 //         | "(" expr ")"
+//         | ident func-args?
 //         | str
+//         | num
 static Node *primary(void) {
   Node *node;
   Token *tok;
-  if (tok = consume_ident()) {
+  if (tok = consume("(")) {
+    if (consume("{")) return stmt_expr(tok);
+    node = expr();
+    expect(")");
+    return node;
+  } else if (tok = consume_ident()) {
     if (consume("(")) {
       // 関数の場合
       node = new_node(ND_FUNCALL, tok);

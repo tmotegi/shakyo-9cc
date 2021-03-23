@@ -70,5 +70,11 @@ void add_type(Node *node) {
     case ND_VAR:
       node->ty = node->var->ty;
       return;
+    case ND_STMT_EXPR: {
+      Node *last = node->body;
+      while (last->next) last = last->next;
+      node->ty = last->ty;
+      return;
+    }
   }
 }

@@ -28,6 +28,12 @@ static Node *new_binary(NodeKind kind, Node *lhs, Node *rhs, Token *tok) {
   return node;
 }
 
+static Node *new_unary(NodeKind kind, Node *expr, Token *tok) {
+  Node *node = new_node(kind, tok);
+  node->lhs = expr;
+  return node;
+}
+
 Node *new_num(int val, Token *tok) {
   Node *node = new_node(ND_NUM, tok);
   node->val = val;
@@ -232,6 +238,11 @@ static Node *declaration(void) {
   return new_binary(ND_EXPR_STMT, node, NULL, tok);
 }
 
+static Node *read_expr_stmt(void) {
+  Token *tok = token;
+  return new_unary(ND_EXPR_STMT, expr(), tok);
+}
+
 static Node *stmt(void) {
   Node *node = stmt2();
   add_type(node);
@@ -276,7 +287,7 @@ static Node *stmt2(void) {
     node = new_node(ND_FOR, tok);
     expect("(");
     if (!consume(";")) {
-      node->init = expr();
+      node->init = read_expr_stmt();
       expect(";");
     }
     if (!consume(";")) {
@@ -284,7 +295,7 @@ static Node *stmt2(void) {
       expect(";");
     }
     if (!consume(")")) {
-      node->step = expr();
+      node->step = read_expr_stmt();
       expect(")");
     }
     node->then = stmt();
@@ -308,7 +319,7 @@ static Node *stmt2(void) {
     return node;
   }
   tok = token;
-  node = new_binary(ND_EXPR_STMT, expr(), NULL, tok);
+  node = read_expr_stmt();
   expect(";");
   return node;
 }

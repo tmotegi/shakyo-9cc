@@ -2,18 +2,11 @@
 
 static VarList *locals;
 static VarList *globals;
+static VarList *scope;
 
 // 変数を名前で検索する。見つからなかった場合はNULLを返す。
 static Var *find_var(Token *tok) {
-  // ローカル変数から探す
-  for (VarList *vl = locals; vl; vl = vl->next) {
-    Var *var = vl->var;
-    if (strlen(var->name) == tok->len &&
-        memcmp(var->name, tok->str, var->len) == 0)
-      return var;
-  }
-
-  for (VarList *vl = globals; vl; vl = vl->next) {
+  for (VarList *vl = scope; vl; vl = vl->next) {
     Var *var = vl->var;
     if (strlen(var->name) == tok->len &&
         memcmp(var->name, tok->str, var->len) == 0)
@@ -47,12 +40,23 @@ static Node *new_var_node(Var *var, Token *tok) {
   return node;
 }
 
-static Var *new_lvar(char *name, Type *ty) {
+static Var *new_var(char *name, Type *ty, bool is_local) {
   Var *var = calloc(1, sizeof(Var));
   var->name = name;
   var->len = strlen(name);
   var->ty = ty;
-  var->is_local = true;
+  var->is_local = is_local;
+
+  // ローカル変数とグローバル変数が scope に追加される
+  VarList *sc = calloc(1, sizeof(VarList));
+  sc->var = var;
+  sc->next = scope;
+  scope = sc;
+  return var;
+}
+
+static Var *new_lvar(char *name, Type *ty) {
+  Var *var = new_var(name, ty, true);
 
   VarList *vl = calloc(1, sizeof(VarList));
   vl->var = var;
@@ -62,10 +66,7 @@ static Var *new_lvar(char *name, Type *ty) {
 }
 
 static Var *new_gvar(char *name, Type *ty) {
-  Var *var = calloc(1, sizeof(Var));
-  var->name = name;
-  var->len = strlen(name);
-  var->ty = ty;
+  Var *var = new_var(name, ty, false);
 
   VarList *vl = calloc(1, sizeof(VarList));
   vl->var = var;
@@ -192,6 +193,8 @@ static Function *function(void) {
   Function *fn = calloc(1, sizeof(Function));
   fn->name = expect_ident();
   expect("(");
+
+  VarList *sc = scope;
   fn->args = read_func_args();  // 引数のリスト
   expect("{");
 
@@ -201,6 +204,7 @@ static Function *function(void) {
     cur->next = stmt();
     cur = cur->next;
   }
+  scope = sc;  // 関数を抜けたら scope の参照先を関数呼び出し前に戻す
 
   fn->node = head.next;
   fn->locals = locals;
@@ -292,10 +296,12 @@ static Node *stmt2(void) {
     Node head = {};
     Node *cur = &head;
 
+    VarList *sc = scope;
     while (!consume("}")) {
       cur->next = stmt();
       cur = cur->next;
     }
+    scope = sc;  // block 抜けたら scope の参照先を戻す
 
     node = new_node(ND_BLOCK, tok);
     node->body = head.next;
@@ -449,6 +455,8 @@ static Node *suffix(void) {
 //
 // Statement expression is a GNU C extension.
 static Node *stmt_expr(Token *tok) {
+  VarList *sc = scope;
+
   Node *node = new_node(ND_STMT_EXPR, tok);
   node->body = stmt();
   Node *cur = node->body;
@@ -458,6 +466,8 @@ static Node *stmt_expr(Token *tok) {
     cur = cur->next;
   }
   expect(")");
+
+  scope = sc;  // ({}) を抜けたら scope の参照先を戻す
 
   if (cur->kind != ND_EXPR_STMT)
     error_tok(cur->tok, "stmt expr returning void is not supported");

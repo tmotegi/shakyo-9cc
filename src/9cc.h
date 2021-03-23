@@ -1,4 +1,5 @@
 #include <ctype.h>
+#include <errno.h>
 #include <stdarg.h>
 #include <stdbool.h>
 #include <stdio.h>
@@ -48,7 +49,9 @@ bool at_eof(void);
 
 Token *tokenize(void);
 
+extern char *filename;
 extern char *user_input;
+
 extern Token *token;
 
 //

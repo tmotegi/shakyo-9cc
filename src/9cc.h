@@ -105,6 +105,7 @@ typedef enum {
   ND_PTR_ADD,    // ptr + num
   ND_PTR_SUB,    // ptr - num
   ND_PTR_DIFF,   // ptr - ptr
+  ND_NULL,
 } NodeKind;
 
 typedef struct Node Node;

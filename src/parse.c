@@ -219,7 +219,8 @@ static Node *declaration(void) {
   ty = read_type_suffix(ty);
   Var *var = new_lvar(name, ty);
 
-  if (tok = consume(";")) return new_var_node(var, tok);
+  if (tok = consume(";"))
+    return new_node(ND_NULL, tok);  // 初期化しない場合は ND_NULL
 
   // lhs = rhs ;
   expect("=");
@@ -228,7 +229,7 @@ static Node *declaration(void) {
   Node *rhs = expr();
   Node *node = new_binary(ND_ASSIGN, lhs, rhs, tok);
   expect(";");
-  return node;
+  return new_binary(ND_EXPR_STMT, node, NULL, tok);
 }
 
 static Node *stmt(void) {

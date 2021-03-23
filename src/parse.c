@@ -213,24 +213,20 @@ static Function *function(void) {
 
 // declartion = basetype ident (read_type_suffix)* ("=" expr) ";"
 static Node *declaration(void) {
-  Node *node;
   Token *tok = token;
   Type *ty = basetype();
   char *name = expect_ident();
   ty = read_type_suffix(ty);
   Var *var = new_lvar(name, ty);
 
-  if (tok = consume(";")) {
-    node = new_var_node(var, tok);
-    return node;
-  }
+  if (tok = consume(";")) return new_var_node(var, tok);
 
   // lhs = rhs ;
   expect("=");
   Node *lhs = new_node(ND_VAR, tok);
   lhs->var = var;
   Node *rhs = expr();
-  node = new_binary(ND_ASSIGN, lhs, rhs, tok);
+  Node *node = new_binary(ND_ASSIGN, lhs, rhs, tok);
   expect(";");
   return node;
 }

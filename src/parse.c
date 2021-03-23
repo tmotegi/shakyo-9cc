@@ -235,7 +235,7 @@ static Node *declaration(void) {
   Node *rhs = expr();
   Node *node = new_binary(ND_ASSIGN, lhs, rhs, tok);
   expect(";");
-  return new_binary(ND_EXPR_STMT, node, NULL, tok);
+  return new_unary(ND_EXPR_STMT, node, tok);
 }
 
 static Node *read_expr_stmt(void) {
@@ -263,7 +263,7 @@ static Node *stmt2(void) {
   Token *tok;
 
   if (tok = consume("return")) {
-    node = new_binary(ND_RETURN, expr(), NULL, tok);
+    node = new_unary(ND_RETURN, expr(), tok);
     expect(";");
     return node;
   } else if (tok = consume("if")) {
@@ -435,9 +435,9 @@ static Node *unary(void) {
   else if (tok = consume("-"))
     return new_binary(ND_SUB, new_num(0, tok), unary(), tok);
   else if (tok = consume("&"))
-    return new_binary(ND_ADDR, unary(), NULL, tok);
+    return new_unary(ND_ADDR, unary(), tok);
   else if (tok = consume("*"))
-    return new_binary(ND_DEREF, unary(), NULL, tok);
+    return new_unary(ND_DEREF, unary(), tok);
   else if (tok = consume("sizeof")) {
     Node *node = unary();
     add_type(node);
@@ -454,7 +454,7 @@ static Node *suffix(void) {
     // x[y] = *(x + y)
     Node *exp = new_add(node, expr(), tok);
     expect("]");
-    node = new_binary(ND_DEREF, exp, NULL, tok);
+    node = new_unary(ND_DEREF, exp, tok);
   }
   return node;
 }

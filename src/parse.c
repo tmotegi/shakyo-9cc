@@ -83,7 +83,7 @@ static char *new_label(void) {
 }
 
 static Type *basetype(void);
-static Type *gloval_var(void);
+static void *global_var(void);
 static Function *function(void);
 static Node *stmt(void);
 static Node *stmt2(void);
@@ -116,7 +116,7 @@ Program *program(void) {
       cur->next = function();
       cur = cur->next;
     } else {
-      gloval_var();
+      global_var();
     }
   }
 
@@ -177,7 +177,7 @@ static VarList *read_func_args(void) {
   return head;
 }
 
-static Type *gloval_var(void) {
+static void *global_var(void) {
   Type *ty = basetype();
   char *name = expect_ident();
   ty = read_type_suffix(ty);

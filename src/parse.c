@@ -146,7 +146,7 @@ static Type *read_type_suffix(Type *base) {
   if (!consume("[")) return base;
   int sz = expect_number();
   expect("]");
-  base = read_type_suffix(base);  // 再帰呼び出し (array[1][2][3])
+  base = read_type_suffix(base);  // 再帰呼び出し (ex: array[N][M])
   return array_of(base, sz);
 }
 
@@ -185,7 +185,7 @@ static void *global_var(void) {
   new_gvar(name, ty);
 }
 
-// function = basetype ident read-func-args "{" stmt* "}"
+// function = basetype ident "(" read-func-args? ")" "{" stmt* "}"
 static Function *function(void) {
   locals = NULL;
 

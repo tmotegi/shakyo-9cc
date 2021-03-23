@@ -139,9 +139,26 @@ static void gen(Node *node) {
       int reg_counter = 0;
       for (Node *arg = node->args; arg; arg = arg->next, reg_counter++)
         gen(arg);
+
       for (int i = reg_counter - 1; i >= 0; i--)
         printf("  pop %s\n", argreg8[i]);
+
+      // We need to align RSP to a 16 byte boundary before
+      // calling a function because it is an ABI requirement.
+      // RAX is set to 0 for variadic function.
+      int seq = label_counter++;
+      printf("  mov rax, rsp\n");
+      printf("  and rax, 15\n");
+      printf("  jnz .L.call.%d\n", seq);
+      printf("  mov rax, 0\n");
       printf("  call %s\n", node->funcname);
+      printf("  jmp .L.end.%d\n", seq);
+      printf(".L.call.%d:\n", seq);
+      printf("  sub rsp, 8\n");
+      printf("  mov rax, 0\n");
+      printf("  call %s\n", node->funcname);
+      printf("  add rsp, 8\n");
+      printf(".L.end.%d:\n", seq);
       printf("  push rax\n");
       return;
     }
@@ -223,7 +240,8 @@ void codegen(Program *prog) {
     if (!vl->var->contents)
       printf("  .zero %ld\n", vl->var->ty->size);
     else
-      printf("  .string \"%s\"\n", vl->var->contents);
+      for (int i = 0; i < vl->var->cont_len; i++)
+        printf("  .byte %d\n", vl->var->contents[i]);
   }
   printf(".text\n");
   for (Function *fn = prog->fns; fn; fn = fn->next) {

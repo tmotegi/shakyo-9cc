@@ -14,9 +14,7 @@ assert() {
   expected="$1"
   input="$2"
 
-  echo "$input" > tmp.c
-  ./9cc tmp.c > tmp.s
-  rm tmp.c
+  ./9cc <(echo "$input") > tmp.s
   cc -no-pie -static -o tmp tmp.s tmp2.o
   ./tmp
   actual="$?"

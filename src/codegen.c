@@ -26,6 +26,13 @@ void gen_addr(Node *node) {
     case ND_DEREF:
       gen(node->lhs);
       return;
+    case ND_MEMBER:
+      gen_addr(node->lhs);  // x.y の x の offset を計算
+      printf("  pop rax\n");
+      printf("  add rax, %d\n",
+             node->member->offset);  // x.y の y の offset を計算
+      printf("  push rax\n");
+      return;
   }
 
   error_tok(node->tok, "代入の左辺値が変数ではありません");
@@ -70,6 +77,7 @@ static void gen(Node *node) {
       printf("  add rsp, 8\n");
       return;
     case ND_VAR:  // 変数の値をスタックにプッシュする
+    case ND_MEMBER:
       gen_addr(node);
       if (node->ty->kind != TY_ARRAY) load(node->ty);
       return;

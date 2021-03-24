@@ -10,6 +10,7 @@
 // Tokenizer
 //
 typedef struct Type Type;
+typedef struct Member Member;
 
 // トークンの種類
 typedef enum {
@@ -95,17 +96,18 @@ typedef enum {
   ND_RETURN,     // Return
   ND_EXPR_STMT,  // Expression statement
   ND_STMT_EXPR,
-  ND_IF,         // If
-  ND_WHILE,      // While
-  ND_FOR,        // For
-  ND_BLOCK,      // Block
-  ND_FUNCALL,    // Function call
-  ND_ADDR,       // &
-  ND_DEREF,      // *
-  ND_PTR_ADD,    // ptr + num
-  ND_PTR_SUB,    // ptr - num
-  ND_PTR_DIFF,   // ptr - ptr
+  ND_IF,        // If
+  ND_WHILE,     // While
+  ND_FOR,       // For
+  ND_BLOCK,     // Block
+  ND_FUNCALL,   // Function call
+  ND_ADDR,      // &
+  ND_DEREF,     // *
+  ND_PTR_ADD,   // ptr + num
+  ND_PTR_SUB,   // ptr - num
+  ND_PTR_DIFF,  // ptr - ptr
   ND_NULL,
+  ND_MEMBER,
 } NodeKind;
 
 typedef struct Node Node;
@@ -136,6 +138,8 @@ struct Node {
 
   char *funcname;  // kind==ND_FUNCALL
   Node *args;      // "func call" statement
+
+  Member *member;  // for struct
 };
 
 typedef struct Function Function;
@@ -163,6 +167,7 @@ typedef enum {
   TY_INT,
   TY_PTR,
   TY_ARRAY,
+  TY_STRUCT,
 } TypeKind;
 
 struct Type {
@@ -170,6 +175,14 @@ struct Type {
   size_t size;
   Type *ptr_to;
   size_t array_size;
+  Member *members;
+};
+
+struct Member {
+  Member *next;
+  Type *ty;
+  char *name;
+  int offset;
 };
 
 extern Type *int_type;

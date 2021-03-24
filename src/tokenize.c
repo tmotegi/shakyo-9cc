@@ -134,7 +134,8 @@ static bool startswith(char *p, char *q) {
 static char *starts_with_reserved(char *p) {
   // Keyword
   static char *kw[] = {
-      "return", "if", "else", "while", "for", "char", "int", "struct", "sizeof",
+      "return", "if",  "else",   "while",   "for",
+      "char",   "int", "struct", "typedef", "sizeof",
   };
 
   for (int i = 0; i < sizeof(kw) / sizeof(*kw); i++) {

@@ -1,5 +1,13 @@
 #include "9cc.h"
 
+typedef struct VarScope VarScope;
+struct VarScope {
+  VarScope *next;
+  char *name;
+  Var *var;
+  Type *type_def;
+};
+
 typedef struct TagScope TagScope;
 struct TagScope {
   TagScope *next;
@@ -8,13 +16,13 @@ struct TagScope {
 };
 
 typedef struct {
-  VarList *var_scope;
+  VarScope *var_scope;
   TagScope *tag_scope;
 } Scope;
 
 static VarList *locals;
 static VarList *globals;
-VarList *var_scope;
+VarScope *var_scope;
 static TagScope *tag_scope;
 
 static Scope *enter_scope(void) {
@@ -30,12 +38,11 @@ static void leave_scope(Scope *sc) {
 }
 
 // 変数を名前で検索する。見つからなかった場合はNULLを返す。
-static Var *find_var(Token *tok) {
-  for (VarList *vl = var_scope; vl; vl = vl->next) {
-    Var *var = vl->var;
-    if (strlen(var->name) == tok->len &&
-        memcmp(var->name, tok->str, tok->len) == 0)
-      return var;
+static VarScope *find_var(Token *tok) {
+  for (VarScope *sc = var_scope; sc; sc = sc->next) {
+    if (strlen(sc->name) == tok->len &&
+        memcmp(sc->name, tok->str, tok->len) == 0)
+      return sc;
   }
   return NULL;
 }
@@ -80,24 +87,27 @@ static Node *new_var_node(Var *var, Token *tok) {
   return node;
 }
 
+static VarScope *push_scope(char *name) {
+  // 先頭に変数追加
+  VarScope *sc = calloc(1, sizeof(VarScope));
+  sc->next = var_scope;
+  sc->name = name;
+  var_scope = sc;
+  return sc;
+}
+
 static Var *new_var(char *name, Type *ty, bool is_local) {
   Var *var = calloc(1, sizeof(Var));
   var->name = name;
   var->len = strlen(name);
   var->ty = ty;
   var->is_local = is_local;
-
-  // ローカル変数とグローバル変数が var_scope に追加される
-  VarList *sc = calloc(1, sizeof(VarList));
-  sc->var = var;
-  sc->next = var_scope;
-  var_scope = sc;
   return var;
 }
 
 static Var *new_lvar(char *name, Type *ty) {
   Var *var = new_var(name, ty, true);
-
+  push_scope(name)->var = var;  // var は null なので設定
   VarList *vl = calloc(1, sizeof(VarList));
   vl->var = var;
   vl->next = locals;
@@ -107,12 +117,20 @@ static Var *new_lvar(char *name, Type *ty) {
 
 static Var *new_gvar(char *name, Type *ty) {
   Var *var = new_var(name, ty, false);
-
+  push_scope(name)->var = var;
   VarList *vl = calloc(1, sizeof(VarList));
   vl->var = var;
   vl->next = globals;
   globals = vl;
   return var;
+}
+
+static Type *find_typedef(Token *tok) {
+  if (tok->kind == TK_IDENT) {
+    VarScope *sc = find_var(tok);
+    if (sc) return sc->type_def;
+  }
+  return NULL;
 }
 
 static char *new_label(void) {
@@ -169,7 +187,7 @@ Program *program(void) {
   return prog;
 }
 
-// basetype = ("char" | "int" | struct-decl ) "*"*
+// basetype = ("char" | "int" | struct-decl | typedef-name ) "*"*
 static Type *basetype(void) {
   if (!is_typename()) error_tok(token, "typename expected");
 
@@ -178,8 +196,11 @@ static Type *basetype(void) {
     ty = char_type;
   else if (consume("int"))
     ty = int_type;
-  else
+  else if (consume("struct"))
     ty = struct_decl();
+  else
+    ty = find_var(consume_ident())->type_def;
+  assert(ty);
 
   while (consume("*")) {
     ty = pointer_to(ty);  // ポインタの場合は ptr_to にアドレスが入る
@@ -207,8 +228,6 @@ static void push_tag_scope(Token *tok, Type *ty) {
 // struct-decl = "struct" ident |
 //               "struct" ident? "{" struct-member "}"
 static Type *struct_decl(void) {
-  expect("struct");
-
   // Read a struct tag.
   Token *tag = consume_ident();
   if (tag && !peek("{")) {
@@ -355,16 +374,17 @@ static Node *stmt(void) {
 }
 
 static bool is_typename(void) {
-  return peek("char") || peek("int") || peek("struct");
+  return peek("char") || peek("int") || peek("struct") || find_typedef(token);
 }
 
-// stmt    = expr ";"
-//         | "return" expr ";"
+// stmt    = "return" expr
 //         | "if" "(" expr ")" stmt ("else" stmt)?
 //         | "while" "(" expr ")" stmt
 //         | "for" "(" expr? ";" expr? ";" expr? ")" stmt
 //         | "{" stmt* "}"
 //         | declaration
+//         | "typedef" basetype ident ("[" num "]")*
+//         | expr ";"
 static Node *stmt2(void) {
   Node *node;
   Token *tok;
@@ -421,6 +441,13 @@ static Node *stmt2(void) {
     node = new_node(ND_BLOCK, tok);
     node->body = head.next;
     return node;
+  } else if (tok = consume("typedef")) {
+    Type *ty = basetype();
+    char *name = expect_ident();
+    ty = read_type_suffix(ty);
+    expect(";");
+    push_scope(name)->type_def = ty;  // name から ty を引けるように追加
+    return new_node(ND_NULL, tok);
   } else if (is_typename()) {
     node = declaration();
     return node;
@@ -656,10 +683,9 @@ static Node *primary(void) {
       return node;
     }
     // 変数の場合
-    Var *var = find_var(tok);
-    if (!var) error_tok(tok, "定義されてない識別子です");
-    node = new_var_node(var, tok);
-    return node;
+    VarScope *sc = find_var(tok);
+    if (sc && sc->var) return new_var_node(sc->var, tok);
+    error_tok(tok, "定義されてない識別子です");
   } else if (consume("(")) {
     node = expr();
     expect(")");

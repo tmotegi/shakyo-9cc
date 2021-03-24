@@ -1,16 +1,50 @@
 #include "9cc.h"
 
+typedef struct TagScope TagScope;
+struct TagScope {
+  TagScope *next;
+  char *name;
+  Type *ty;
+};
+
+typedef struct {
+  VarList *var_scope;
+  TagScope *tag_scope;
+} Scope;
+
 static VarList *locals;
 static VarList *globals;
-static VarList *scope;
+VarList *var_scope;
+static TagScope *tag_scope;
+
+static Scope *enter_scope(void) {
+  Scope *sc = calloc(1, sizeof(Scope));
+  sc->var_scope = var_scope;
+  sc->tag_scope = tag_scope;
+  return sc;
+}
+
+static void leave_scope(Scope *sc) {
+  var_scope = sc->var_scope;
+  tag_scope = sc->tag_scope;
+}
 
 // 変数を名前で検索する。見つからなかった場合はNULLを返す。
 static Var *find_var(Token *tok) {
-  for (VarList *vl = scope; vl; vl = vl->next) {
+  for (VarList *vl = var_scope; vl; vl = vl->next) {
     Var *var = vl->var;
     if (strlen(var->name) == tok->len &&
-        memcmp(var->name, tok->str, var->len) == 0)
+        memcmp(var->name, tok->str, tok->len) == 0)
       return var;
+  }
+  return NULL;
+}
+
+static TagScope *find_tag(Token *tok) {
+  for (TagScope *sc = tag_scope; sc; sc = sc->next) {
+    if (strlen(sc->name) == tok->len &&
+        memcmp(sc->name, tok->str, tok->len) == 0)
+      return sc;
   }
   return NULL;
 }
@@ -53,11 +87,11 @@ static Var *new_var(char *name, Type *ty, bool is_local) {
   var->ty = ty;
   var->is_local = is_local;
 
-  // ローカル変数とグローバル変数が scope に追加される
+  // ローカル変数とグローバル変数が var_scope に追加される
   VarList *sc = calloc(1, sizeof(VarList));
   sc->var = var;
-  sc->next = scope;
-  scope = sc;
+  sc->next = var_scope;
+  var_scope = sc;
   return var;
 }
 
@@ -162,10 +196,31 @@ static Type *read_type_suffix(Type *base) {
   return array_of(base, sz);
 }
 
-// struct-decl = "struct" "{" struct-member "}"
+static void push_tag_scope(Token *tok, Type *ty) {
+  TagScope *sc = calloc(1, sizeof(TagScope));
+  sc->next = tag_scope;
+  sc->name = strndup(tok->str, tok->len);
+  sc->ty = ty;
+  tag_scope = sc;
+}
+
+// struct-decl = "struct" ident |
+//               "struct" ident? "{" struct-member "}"
 static Type *struct_decl(void) {
   expect("struct");
+
+  // Read a struct tag.
+  Token *tag = consume_ident();
+  if (tag && !peek("{")) {
+    // struct ident; の場合
+    TagScope *sc = find_tag(tag);
+    if (!sc) error_tok(tag, "unknown struct type");
+    return sc->ty;
+  }
+
   expect("{");
+
+  // Read struct members.
   Member head = {};
   Member *cur = &head;
   while (!consume("}")) {
@@ -185,6 +240,9 @@ static Type *struct_decl(void) {
     if (ty->align < m->ty->align) ty->align = m->ty->align;
   }
   ty->size = align_to(offset, ty->align);
+
+  // Register the struct type if a name was given.
+  if (tag) push_tag_scope(tag, ty);
 
   return ty;
 }
@@ -243,7 +301,7 @@ static Function *function(void) {
   fn->name = expect_ident();
   expect("(");
 
-  VarList *sc = scope;
+  Scope *sc = enter_scope();
   fn->args = read_func_args();  // 引数のリスト
   expect("{");
 
@@ -253,7 +311,7 @@ static Function *function(void) {
     cur->next = stmt();
     cur = cur->next;
   }
-  scope = sc;  // 関数を抜けたら scope の参照先を関数呼び出し前に戻す
+  leave_scope(sc);  // 関数を抜けたら scope の参照先を関数呼び出し前に戻す
 
   fn->node = head.next;
   fn->locals = locals;
@@ -264,6 +322,10 @@ static Function *function(void) {
 static Node *declaration(void) {
   Token *tok = token;
   Type *ty = basetype();
+  if (consume(";"))
+    return new_node(
+        ND_NULL, tok);  // 変数宣言しない場合は ND_NULL (ex: struct x {int a;};)
+
   char *name = expect_ident();
   ty = read_type_suffix(ty);
   Var *var = new_lvar(name, ty);
@@ -349,12 +411,12 @@ static Node *stmt2(void) {
     Node head = {};
     Node *cur = &head;
 
-    VarList *sc = scope;
+    Scope *sc = enter_scope();
     while (!consume("}")) {
       cur->next = stmt();
       cur = cur->next;
     }
-    scope = sc;  // block 抜けたら scope の参照先を戻す
+    leave_scope(sc);  // block 抜けたら scope の参照先を戻す
 
     node = new_node(ND_BLOCK, tok);
     node->body = head.next;
@@ -534,7 +596,7 @@ static Node *suffix(void) {
 //
 // Statement expression is a GNU C extension.
 static Node *stmt_expr(Token *tok) {
-  VarList *sc = scope;
+  Scope *sc = enter_scope();
 
   Node *node = new_node(ND_STMT_EXPR, tok);
   node->body = stmt();
@@ -546,7 +608,7 @@ static Node *stmt_expr(Token *tok) {
   }
   expect(")");
 
-  scope = sc;  // ({}) を抜けたら scope の参照先を戻す
+  leave_scope(sc);  // ({}) を抜けたら scope の参照先を戻す
 
   if (cur->kind != ND_EXPR_STMT)
     error_tok(cur->tok, "stmt expr returning void is not supported");

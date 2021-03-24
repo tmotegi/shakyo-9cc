@@ -1,24 +1,30 @@
 #include "9cc.h"
 
-Type *char_type = &(Type){TY_CHAR, 1};
-Type *int_type = &(Type){TY_INT, 8};
+Type *char_type = &(Type){TY_CHAR, 1, 1};
+Type *int_type = &(Type){TY_INT, 8, 8};
 
 bool is_integer(Type *ty) { return ty->kind == TY_CHAR || ty->kind == TY_INT; }
 
-Type *pointer_to(Type *ptr_to) {
+int align_to(int n, int align) { return (n + align - 1) & ~(align - 1); }
+
+Type *new_type(TypeKind kind, int size, int align) {
   Type *ty = calloc(1, sizeof(Type));
-  ty->kind = TY_PTR;
+  ty->kind = kind;
+  ty->size = size;
+  ty->align = align;
+  return ty;
+}
+
+Type *pointer_to(Type *ptr_to) {
+  Type *ty = new_type(TY_PTR, 8, 8);
   ty->ptr_to = ptr_to;
-  ty->size = 8;
   return ty;
 }
 
 Type *array_of(Type *ptr_to, int len) {
-  Type *ty = calloc(1, sizeof(Type));
-  ty->kind = TY_ARRAY;
+  Type *ty = new_type(TY_ARRAY, ptr_to->size * len, ptr_to->align);
   ty->ptr_to = ptr_to;
   ty->array_size = len;
-  ty->size = ptr_to->size * len;
   return ty;
 }
 

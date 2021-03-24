@@ -178,10 +178,13 @@ static Type *struct_decl(void) {
 
   int offset = 0;
   for (Member *m = ty->members; m; m = m->next) {
+    offset = align_to(offset, m->ty->align);
     m->offset = offset;
     offset += m->ty->size;
+
+    if (ty->align < m->ty->align) ty->align = m->ty->align;
   }
-  ty->size = offset;
+  ty->size = align_to(offset, ty->align);
 
   return ty;
 }

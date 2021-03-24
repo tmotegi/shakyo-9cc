@@ -19,6 +19,7 @@ Type *array_of(Type *ptr_to, int len) {
   ty->ptr_to = ptr_to;
   ty->array_size = len;
   ty->size = ptr_to->size * len;
+  return ty;
 }
 
 void add_type(Node *node) {

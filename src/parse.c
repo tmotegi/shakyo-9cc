@@ -575,7 +575,7 @@ static Node *struct_ref(Node *lhs) {
   return node;
 }
 
-// suffix = primary ("[" expr "]" | "." ident)*
+// suffix = primary ("[" expr "]" | "." ident | "->" ident)*
 static Node *suffix(void) {
   Node *node = primary();
   Token *tok;
@@ -587,7 +587,11 @@ static Node *suffix(void) {
       node = new_unary(ND_DEREF, exp, tok);
     } else if (tok = consume("."))  // x.y
       node = struct_ref(node);
-    else
+    else if (tok = consume("->")) {
+      // x->y = (*x).y
+      node = new_unary(ND_DEREF, node, tok);
+      node = struct_ref(node);
+    } else
       return node;
   }
 }

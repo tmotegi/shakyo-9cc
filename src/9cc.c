@@ -34,6 +34,7 @@ int main(int argc, char **argv) {
   for (Function *fn = prog->fns; fn; fn = fn->next) {
     int offset = 0;
     for (VarList *vl = fn->locals; vl; vl = vl->next) {
+      offset = align_to(offset, vl->var->ty->align);
       offset += vl->var->ty->size;
       vl->var->offset = offset;
     }

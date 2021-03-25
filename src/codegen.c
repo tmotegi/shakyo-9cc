@@ -7,6 +7,7 @@ static char *funcname;
 // レジスタ
 // https://www.sigbus.info/compilerbook#%E6%95%B4%E6%95%B0%E3%83%AC%E3%82%B8%E3%82%B9%E3%82%BF%E3%81%AE%E4%B8%80%E8%A6%A7
 static char *argreg1[] = {"dil", "sil", "dl", "cl", "r8b", "r9b"};
+static char *argreg4[] = {"edi", "esi", "edx", "ecx", "r8d", "r9d"};
 static char *argreg8[] = {"rdi", "rsi", "rdx", "rcx", "r8", "r9"};
 
 static void gen(Node *node);
@@ -48,7 +49,9 @@ static void gen_lval(Node *node) {
 static void load(Type *ty) {
   printf("  pop rax\n");
   if (ty->size == 1)
-    printf("  movsx rax, byte ptr [rax]\n");
+    printf("  movsx rax, byte ptr [rax]\n");  // 64 <- 8 bit
+  else if (ty->size == 4)
+    printf("  movsx rax, dword ptr [rax]\n");  // 64 <- 32 bit
   else
     printf("  mov rax, [rax]\n");
   printf("  push rax\n");
@@ -59,6 +62,8 @@ static void store(Type *ty) {
   printf("  pop rax\n");
   if (ty->size == 1)
     printf("  mov [rax], dil\n");  // rdi の 下位8ビット
+  else if (ty->size == 4)
+    printf("  mov [rax], edi\n");  // rdi の 下位32ビット
   else
     printf("  mov [rax], rdi\n");  // 左辺値に右辺値をストア
 
@@ -270,6 +275,8 @@ void codegen(Program *prog) {
     for (VarList *vl = fn->args; vl; vl = vl->next)
       if (vl->var->ty->size == 1)
         printf("  mov [rbp-%d], %s\n", vl->var->offset, argreg1[i++]);
+      else if (vl->var->ty->size == 4)
+        printf("  mov [rbp-%d], %s\n", vl->var->offset, argreg4[i++]);
       else
         printf("  mov [rbp-%d], %s\n", vl->var->offset, argreg8[i++]);
 

@@ -1,7 +1,9 @@
 #include "9cc.h"
 
 Type *char_type = &(Type){TY_CHAR, 1, 1};
+Type *short_type = &(Type){TY_INT, 2, 2};
 Type *int_type = &(Type){TY_INT, 4, 4};
+Type *long_type = &(Type){TY_INT, 8, 8};
 
 bool is_integer(Type *ty) { return ty->kind == TY_CHAR || ty->kind == TY_INT; }
 

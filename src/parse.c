@@ -187,15 +187,20 @@ Program *program(void) {
   return prog;
 }
 
-// basetype = ("char" | "int" | struct-decl | typedef-name ) "*"*
+// basetype = ("char" | "short" | "int" | "long" | struct-decl | typedef-name )
+// "*"*
 static Type *basetype(void) {
   if (!is_typename()) error_tok(token, "typename expected");
 
   Type *ty;
   if (consume("char"))
     ty = char_type;
+  else if (consume("short"))
+    ty = short_type;
   else if (consume("int"))
     ty = int_type;
+  else if (consume("long"))
+    ty = long_type;
   else if (consume("struct"))
     ty = struct_decl();
   else
@@ -374,7 +379,8 @@ static Node *stmt(void) {
 }
 
 static bool is_typename(void) {
-  return peek("char") || peek("int") || peek("struct") || find_typedef(token);
+  return peek("char") || peek("short") || peek("int") || peek("long") ||
+         peek("struct") || find_typedef(token);
 }
 
 // stmt    = "return" expr

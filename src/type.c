@@ -30,6 +30,12 @@ Type *array_of(Type *ptr_to, int len) {
   return ty;
 }
 
+Type *func_type(Type *return_ty) {
+  Type *ty = new_type(TY_FUNC, 1, 1);
+  ty->return_ty = return_ty;
+  return ty;
+}
+
 void add_type(Node *node) {
   if (!node || node->ty) return;
 
@@ -54,7 +60,7 @@ void add_type(Node *node) {
     case ND_NE:
     case ND_LT:
     case ND_LE:
-    case ND_FUNCALL:
+    // case ND_FUNCALL:
     case ND_NUM:
       node->ty = int_type;
       return;

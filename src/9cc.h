@@ -41,6 +41,7 @@ char *strndup(char *s, size_t n);
 void error(char *fmt, ...);
 void error_at(char *loc, char *fmt, ...);
 void error_tok(Token *tok, char *fmt, ...);
+void warn_tok(Token *tok, char *fmt, ...);
 Token *peek(char *s);
 Token *consume(char *op);
 Token *consume_ident(void);
@@ -169,6 +170,7 @@ typedef enum {
   TY_PTR,
   TY_ARRAY,
   TY_STRUCT,
+  TY_FUNC,
 } TypeKind;
 
 struct Type {
@@ -178,6 +180,7 @@ struct Type {
   Type *ptr_to;
   size_t array_size;
   Member *members;
+  Type *return_ty;
 };
 
 struct Member {
@@ -194,9 +197,10 @@ extern Type *long_type;
 
 bool is_integer(Type *ty);
 int align_to(int n, int align);
-void add_type(Node *node);
 Type *pointer_to(Type *ptr_to);
 Type *array_of(Type *ptr_to, int len);
+Type *func_type(Type *return_ty);
+void add_type(Node *node);
 
 //
 // Code generator

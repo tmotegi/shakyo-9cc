@@ -178,7 +178,9 @@ Program *program(void) {
 
   while (!at_eof()) {
     if (is_function()) {
-      cur->next = function();
+      Function *fn = function();
+      if (!fn) continue;
+      cur->next = fn;
       cur = cur->next;
     } else {
       global_var();
@@ -340,7 +342,7 @@ static void *global_var(void) {
   new_gvar(name, ty);
 }
 
-// function = basetype decalarator "(" read-func-args? ")" "{" stmt* "}"
+// function = basetype decalarator "(" read-func-args? ")" ("{" stmt* "}" | ";")
 static Function *function(void) {
   locals = NULL;
 
@@ -354,10 +356,16 @@ static Function *function(void) {
 
   Scope *sc = enter_scope();
   fn->args = read_func_args();  // 引数のリスト
-  expect("{");
+
+  if (consume(";")) {
+    // 本体がない場合
+    leave_scope(sc);
+    return NULL;
+  }
 
   Node head = {};
   Node *cur = &head;
+  expect("{");
   while (!consume("}")) {
     cur->next = stmt();
     cur = cur->next;

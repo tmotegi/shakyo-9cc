@@ -165,6 +165,7 @@ Program *program(void);
 // type
 //
 typedef enum {
+  TY_VOID,
   TY_CHAR,
   TY_INT,
   TY_PTR,
@@ -190,6 +191,7 @@ struct Member {
   int offset;
 };
 
+extern Type *void_type;
 extern Type *char_type;
 extern Type *short_type;
 extern Type *int_type;

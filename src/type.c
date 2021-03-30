@@ -1,5 +1,6 @@
 #include "9cc.h"
 
+Type *void_type = &(Type){TY_VOID, 1, 1};
 Type *char_type = &(Type){TY_CHAR, 1, 1};
 Type *short_type = &(Type){TY_INT, 2, 2};
 Type *int_type = &(Type){TY_INT, 4, 4};
@@ -81,6 +82,8 @@ void add_type(Node *node) {
       node->ty =
           node->lhs->ty
               ->ptr_to;  // ND_DEREF の場合は ptr_to の先の Type を設定する
+      if (node->ty->kind == TY_VOID)
+        error_tok(node->tok, "dereferencing a void pointer");
       return;
     case ND_VAR:
       node->ty = node->var->ty;

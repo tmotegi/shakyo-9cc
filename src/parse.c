@@ -213,9 +213,10 @@ static Type *basetype(void) {
     ty = short_type;
   else if (consume("int"))
     ty = int_type;
-  else if (consume("long"))
+  else if (consume("long")) {
+    consume("long");
     ty = long_type;
-  else if (consume("struct"))
+  } else if (consume("struct"))
     ty = struct_decl();
   else
     ty = find_var(consume_ident())->type_def;
@@ -350,7 +351,8 @@ static void *global_var(void) {
   new_gvar(name, ty, true);
 }
 
-// function = basetype decalarator "(" read-func-args? ")" ("{" stmt* "}" | ";")
+// function = basetype decalarator "(" read-func-args? ")" ("{" stmt* "}" |
+// ";")
 static Function *function(void) {
   locals = NULL;
 
@@ -393,7 +395,8 @@ static Node *declaration(void) {
   Type *ty = basetype();
   if (consume(";"))
     return new_node(
-        ND_NULL, tok);  // 変数宣言しない場合は ND_NULL (ex: struct x {int a;};)
+        ND_NULL,
+        tok);  // 変数宣言しない場合は ND_NULL (ex: struct x {int a;};)
 
   char *name = NULL;
   ty = declarator(ty, &name);

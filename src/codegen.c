@@ -63,6 +63,12 @@ static void load(Type *ty) {
 static void store(Type *ty) {
   printf("  pop rdi\n");
   printf("  pop rax\n");
+  if (ty->kind == TY_BOOL) {
+    printf("  cmp rdi, 0\n");  // 0かどうか
+    printf("  setne dil\n");  // 0 でない場合は dil レジスタに1をセットする
+    printf("  movzb rdi, dil\n");  // ゼロ拡張でストア
+  }
+
   if (ty->size == 1)
     printf("  mov [rax], dil\n");  // rdi の 下位8ビット
   else if (ty->size == 2)

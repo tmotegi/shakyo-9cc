@@ -146,6 +146,7 @@ static char *new_label(void) {
 static Function *function(void);
 static Type *basetype(bool *is_typedef);
 static Type *declarator(Type *ty, char **name);
+static Type *abstract_declarator(Type *ty);
 static Type *type_suffix(Type *ty);
 static Type *struct_decl(void);
 static Member *struct_member(void);
@@ -295,7 +296,7 @@ static Type *basetype(bool *is_typedef) {
   return ty;
 }
 
-// declarator = "*"* ("(" declarator ")") | ident) type-suffix
+// declarator = "*"* ("(" declarator ")" | ident) type-suffix
 static Type *declarator(Type *ty, char **name) {
   while (consume("*")) ty = pointer_to(ty);
 
@@ -311,6 +312,20 @@ static Type *declarator(Type *ty, char **name) {
   }
 }
 
+// abstract-declarator = "*"* ("(" abstract-declarator ")")? type-suffix
+static Type *abstract_declarator(Type *ty) {
+  while (consume("*")) ty = pointer_to(ty);
+
+  if (consume("(")) {
+    Type *placeholder = calloc(1, sizeof(Type));
+    Type *new_ty = abstract_declarator(placeholder);  // 再帰的に型を処理
+    expect(")");
+    memcpy(placeholder, type_suffix(ty), sizeof(Type));
+    return new_ty;
+  } else
+    return type_suffix(ty);
+}
+
 // type-suffix = "[" num "]" read-type-suffix?
 static Type *type_suffix(Type *ty) {
   // 配列定義を処理
@@ -319,6 +334,12 @@ static Type *type_suffix(Type *ty) {
   expect("]");
   ty = type_suffix(ty);  // 再帰呼び出し (ex: array[N][M])
   return array_of(ty, sz);
+}
+
+static Type *type_name() {
+  Type *ty = basetype(NULL);
+  ty = abstract_declarator(ty);  // 型を得る・変数名は不要
+  return ty;
 }
 
 static void push_tag_scope(Token *tok, Type *ty) {
@@ -697,7 +718,7 @@ static Node *mul(void) {
 }
 
 // unary   = ("+" | "-" | "&" | "*")? unary
-//         | "sizeof" unary
+//         | "sizeof" "(" type-name ")"
 //         | suffix
 static Node *unary(void) {
   Token *tok;
@@ -710,6 +731,14 @@ static Node *unary(void) {
   else if (tok = consume("*"))
     return new_unary(ND_DEREF, unary(), tok);
   else if (tok = consume("sizeof")) {
+    if (consume("(")) {
+      if (is_typename()) {
+        Type *ty = type_name();
+        expect(")");
+        return new_num(ty->size, tok);
+      }
+      token = tok->next;  // consume("(") で読んだ分を戻す
+    }
     Node *node = unary();
     add_type(node);
     return new_num(node->ty->size, tok);

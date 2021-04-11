@@ -108,8 +108,9 @@ typedef enum {
   ND_PTR_ADD,   // ptr + num
   ND_PTR_SUB,   // ptr - num
   ND_PTR_DIFF,  // ptr - ptr
-  ND_NULL,
   ND_MEMBER,
+  ND_CAST,
+  ND_NULL,
 } NodeKind;
 
 typedef struct Node Node;
@@ -135,7 +136,7 @@ struct Node {
 
   Node *body;  // "block" statement
 
-  int val;   // kind==ND_NUM
+  long val;  // kind==ND_NUM
   Var *var;  // kind==ND_LVAR
 
   char *funcname;  // kind==ND_FUNCALL

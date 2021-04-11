@@ -81,6 +81,24 @@ static void store(Type *ty) {
   printf("  push rdi\n");
 }
 
+static void truncate(Type *ty) {
+  printf("  pop rax\n");
+
+  if (ty->kind == TY_BOOL) {
+    printf("  cmp rax, 0\n");
+    printf("  setne al\n");
+  }
+
+  if (ty->size == 1) {
+    printf("  movsx rax, al\n");
+  } else if (ty->size == 2) {
+    printf("  movsx rax, ax\n");
+  } else if (ty->size == 4) {
+    printf("  movsxd rax, eax\n");
+  }
+  printf("  push rax\n");
+}
+
 static void gen(Node *node) {
   switch (node->kind) {
     case ND_NULL:
@@ -199,6 +217,10 @@ static void gen(Node *node) {
     case ND_DEREF:
       gen(node->lhs);
       if (node->ty->kind != TY_ARRAY) load(node->ty);
+      return;
+    case ND_CAST:
+      gen(node->lhs);
+      truncate(node->ty);
       return;
   }
 

@@ -160,6 +160,7 @@ static Node *equality(void);
 static Node *relational(void);
 static Node *add(void);
 static Node *mul(void);
+static Node *cast(void);
 static Node *unary(void);
 static Node *suffix(void);
 static Node *primary(void);
@@ -702,22 +703,40 @@ static Node *add(void) {
   }
 }
 
-// mul     = unary ("*" unary | "/" unary)*
+// mul     = cast ("*" cast | "/" cast)*
 static Node *mul(void) {
-  Node *node = unary();
+  Node *node = cast();
   Token *tok;
 
   for (;;) {
     if (tok = consume("*"))
-      node = new_binary(ND_MUL, node, unary(), tok);
+      node = new_binary(ND_MUL, node, cast(), tok);
     else if (tok = consume("/"))
-      node = new_binary(ND_DIV, node, unary(), tok);
+      node = new_binary(ND_DIV, node, cast(), tok);
     else
       return node;
   }
 }
 
-// unary   = ("+" | "-" | "&" | "*")? unary
+// cast = "(" type-name ")" cast | unary
+static Node *cast(void) {
+  Token *tok = token;
+
+  if (consume("(")) {
+    if (is_typename()) {
+      Type *ty = type_name();
+      expect(")");
+      Node *node = new_unary(ND_CAST, cast(), tok);
+      add_type(node->lhs);
+      node->ty = ty;
+      return node;
+    }
+    token = tok;  // 括弧のあとに typename が続かない場合は戻す
+  }
+  return unary();
+}
+
+// unary   = ("+" | "-" | "&" | "*")? cast
 //         | "sizeof" "(" type-name ")"
 //         | suffix
 static Node *unary(void) {
@@ -725,11 +744,11 @@ static Node *unary(void) {
   if (tok = consume("+"))
     return unary();
   else if (tok = consume("-"))
-    return new_binary(ND_SUB, new_num(0, tok), unary(), tok);
+    return new_binary(ND_SUB, new_num(0, tok), cast(), tok);
   else if (tok = consume("&"))
-    return new_unary(ND_ADDR, unary(), tok);
+    return new_unary(ND_ADDR, cast(), tok);
   else if (tok = consume("*"))
-    return new_unary(ND_DEREF, unary(), tok);
+    return new_unary(ND_DEREF, cast(), tok);
   else if (tok = consume("sizeof")) {
     if (consume("(")) {
       if (is_typename()) {

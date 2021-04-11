@@ -16,10 +16,8 @@ typedef int MyInt;
 
 int assert(long expected, long actual, char *code) {
   if (expected == actual) {
-    printf("%s => %d\n", code, actual);
     printf("%s => %ld\n", code, actual);
   } else {
-    printf("%s => %d expected but got %d\n", code, expected, actual);
     printf("%s => %ld expected but got %ld\n", code, expected, actual);
     exit(1);
   }
@@ -299,6 +297,9 @@ int main() {
   assert(1, (long)1, "(long)1");
   assert(0, (long)&*(int *)0, "(long)&*(int *)0");
   assert(5, ({ int x=5; long y=(long)&x; *(int*)y; }), "int x=5; long y=(long)&x; *(int*)y");
+
+  assert(97, 'a', "'a'");
+  assert(10, '\n', "\'\\n\'");
 
   printf("OK\n");
   return 0;
